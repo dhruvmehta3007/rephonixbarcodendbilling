@@ -897,28 +897,35 @@ export default function DevicesPage() {
               </button>
             </div>
 
-            {/* Sticker Preview Box: CELL POINT Branding + Device Name + Barcode + MRP */}
-            <div className="printable-label my-6 p-4 bg-white text-black rounded-xl shadow-2xl text-center font-sans border border-gray-200">
+            {/* Sticker Preview Box: CELL POINT Branding + Device Name + Barcode + MRP (40x20mm thermal label) */}
+            <div 
+              className="printable-label my-6 p-2 bg-white text-black rounded-lg shadow-xl text-center font-sans border border-gray-300 mx-auto"
+              style={{
+                width: '100%',
+                maxWidth: '260px',
+                aspectRatio: '40/20',
+              }}
+            >
               {/* CELL POINT Header */}
-              <div className="w-full font-black text-xs tracking-wider text-blue-900 uppercase border-b border-gray-300 pb-1 mb-1 flex items-center justify-between px-1">
+              <div className="w-full font-black text-[9px] tracking-wider text-blue-900 uppercase border-b border-gray-300 pb-0.5 mb-0.5 flex items-center justify-between px-1">
                 <span>CELL POINT</span>
-                <span className="text-[10px] text-gray-500 font-bold">RETAIL</span>
+                <span className="text-[8px] text-gray-500 font-bold">RETAIL</span>
               </div>
 
               {/* Device Name */}
-              <div className="w-full font-extrabold text-sm text-gray-900 leading-tight line-clamp-2 px-1">
+              <div className="w-full font-bold text-[10px] text-gray-900 leading-tight truncate px-0.5">
                 {printDevice.product?.name}
               </div>
 
               {/* Barcode SVG */}
-              <div className="w-full my-1.5 flex justify-center items-center overflow-hidden">
+              <div className="w-full my-0.5 flex justify-center items-center overflow-hidden">
                 <div
                   dangerouslySetInnerHTML={{
                     __html: generateBarcodeSvg({
                       type: 'code128',
                       value: printDevice.barcode || printDevice.imei1 || 'DEVICE',
-                      height: 14,
-                      scale: 2,
+                      height: 8,
+                      scale: 1.3,
                       includeText: true,
                     }),
                   }}
@@ -926,11 +933,11 @@ export default function DevicesPage() {
               </div>
 
               {/* Selling Price / MRP & Value */}
-              <div className="w-full flex items-center justify-between border-t border-gray-200 pt-1 px-1">
-                <span className="text-[10px] font-mono font-semibold text-gray-600 tracking-wider">
+              <div className="w-full flex items-center justify-between border-t border-gray-200 pt-0.5 px-0.5 text-[8px]">
+                <span className="font-mono font-bold text-gray-700 truncate max-w-[50%]">
                   {printDevice.customValue || printDevice.product?.customValue || printDevice.barcode}
                 </span>
-                <span className="text-xs font-black text-gray-950">
+                <span className="font-black text-gray-950">
                   MRP: ₹{(printDevice.product?.sellingPrice || 0).toLocaleString('en-IN')}
                 </span>
               </div>

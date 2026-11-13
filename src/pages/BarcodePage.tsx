@@ -20,7 +20,7 @@ export default function BarcodePage() {
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [symbology, setSymbology] = useState<'code128' | 'ean13'>('code128');
-  const [labelSize, setLabelSize] = useState<'50x25' | '50x30' | '40x25'>('50x25');
+  const [labelSize, setLabelSize] = useState<'40x20' | '50x25' | '50x30' | '40x25'>('40x20');
   const [showPrice, setShowPrice] = useState(true); // Default to showing MRP / selling price
   const [showBarcodeText, setShowBarcodeText] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -205,6 +205,7 @@ export default function BarcodePage() {
                     onChange={(e) => setLabelSize(e.target.value as any)}
                     className="w-full bg-white border border-black/[0.08] rounded-lg px-2 py-1 text-[#1d1d1f] text-xs"
                   >
+                    <option value="40x20">40 × 20 mm (Thermal Barcode)</option>
                     <option value="50x25">50 × 25 mm</option>
                     <option value="50x30">50 × 30 mm</option>
                     <option value="40x25">40 × 25 mm</option>
@@ -256,7 +257,7 @@ export default function BarcodePage() {
                       className="batch-barcode-sticker p-3 bg-white text-black rounded-lg shadow-md flex flex-col justify-between items-center text-center select-none"
                       style={{
                         width: '100%',
-                        aspectRatio: labelSize === '50x30' ? '50/30' : '50/25',
+                        aspectRatio: labelSize === '40x20' ? '40/20' : labelSize === '50x30' ? '50/30' : '50/25',
                       }}
                     >
                       {/* CELL POINT Brand Header */}
