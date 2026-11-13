@@ -266,20 +266,20 @@ export default function BarcodePage() {
                       </div>
 
                       {/* Device Name */}
-                      <div className="w-full text-[9px] font-extrabold text-gray-900 truncate uppercase tracking-tight mt-0.5">
+                      <div className="w-full text-[10px] font-black text-gray-950 truncate uppercase tracking-tight my-0.5">
                         {prod.name}
                       </div>
 
                       {/* Barcode Vector SVG */}
                       <div
-                        className="w-full flex items-center justify-center my-0.5 overflow-hidden"
+                        className="w-full flex items-center justify-center my-0.5 overflow-hidden max-h-[7mm]"
                         dangerouslySetInnerHTML={{
                           __html: generateBarcodeSvg({
                             type: symbology,
                             value: prod.barcode || '000000',
-                            includeText: true,
-                            height: 11,
-                            scale: 1.5,
+                            includeText: false,
+                            height: 6,
+                            scale: 1.1,
                           }),
                         }}
                       />

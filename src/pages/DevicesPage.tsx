@@ -899,7 +899,7 @@ export default function DevicesPage() {
 
             {/* Sticker Preview Box: CELL POINT Branding + Device Name + Barcode + MRP (40x20mm thermal label) */}
             <div 
-              className="printable-label my-6 p-2 bg-white text-black rounded-lg shadow-xl text-center font-sans border border-gray-300 mx-auto"
+              className="printable-label my-6 p-1.5 bg-white text-black rounded-lg shadow-xl text-center font-sans border border-gray-300 mx-auto flex flex-col justify-between"
               style={{
                 width: '100%',
                 maxWidth: '260px',
@@ -907,34 +907,35 @@ export default function DevicesPage() {
               }}
             >
               {/* CELL POINT Header */}
-              <div className="w-full font-black text-[9px] tracking-wider text-blue-900 uppercase border-b border-gray-300 pb-0.5 mb-0.5 flex items-center justify-between px-1">
+              <div className="w-full font-black text-[9px] tracking-wider text-blue-900 uppercase border-b border-gray-300 pb-0.5 flex items-center justify-between px-1 shrink-0">
                 <span>CELL POINT</span>
-                <span className="text-[8px] text-gray-500 font-bold">RETAIL</span>
+                <span className="text-[7.5px] text-gray-500 font-bold">RETAIL</span>
               </div>
 
-              {/* Device Name */}
-              <div className="w-full font-bold text-[10px] text-gray-900 leading-tight truncate px-0.5">
+              {/* Device Name - Bold, Clear & Legible */}
+              <div className="w-full font-black text-[11px] text-gray-950 uppercase leading-snug tracking-tight px-1 py-0.5 shrink-0 break-words line-clamp-1">
                 {printDevice.product?.name}
               </div>
 
-              {/* Barcode SVG */}
-              <div className="w-full my-0.5 flex justify-center items-center overflow-hidden">
+              {/* Barcode SVG - Slim & Compact so it doesn't overlap or crowd text */}
+              <div className="w-full flex justify-center items-center overflow-hidden my-0.5 max-h-[7mm]">
                 <div
+                  className="w-full flex justify-center items-center"
                   dangerouslySetInnerHTML={{
                     __html: generateBarcodeSvg({
                       type: 'code128',
                       value: printDevice.barcode || printDevice.imei1 || 'DEVICE',
-                      height: 8,
-                      scale: 1.3,
-                      includeText: true,
+                      height: 5,
+                      scale: 1.1,
+                      includeText: false,
                     }),
                   }}
                 />
               </div>
 
               {/* Selling Price / MRP & Value */}
-              <div className="w-full flex items-center justify-between border-t border-gray-200 pt-0.5 px-0.5 text-[8px]">
-                <span className="font-mono font-bold text-gray-700 truncate max-w-[50%]">
+              <div className="w-full flex items-center justify-between border-t border-gray-300 pt-0.5 px-1 text-[8.5px] shrink-0">
+                <span className="font-mono font-bold text-gray-800 truncate max-w-[48%]">
                   {printDevice.customValue || printDevice.product?.customValue || printDevice.barcode}
                 </span>
                 <span className="font-black text-gray-950">
