@@ -1,0 +1,271 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User & Role Based Access Control
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  email        String?  @unique
+  passwordHash String
+  fullName     String
+  role         String   @default("CASHIER") // ADMIN or CASHIER
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sales              Sale[]
+  purchases          Purchase[]
+  inventoryMovements InventoryMovement[]
+  auditLogs          AuditLog[]
+}
+
+// Product Categories
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  slug        String    @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  products Product[]
+}
+
+// Suppliers
+model Supplier {
+  id            String   @id @default(uuid())
+  name          String
+  contactPerson String?
+  email         String?
+  phone         String?
+  address       String?
+  gstin         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  products  Product[]
+  purchases Purchase[]
+  devices   DeviceUnit[]
+}
+
+// Customers
+model Customer {
+  id         String   @id @default(uuid())
+  name       String
+  phone      String?  @unique
+  email      String?
+  address    String?
+  totalSpent Float    @default(0.0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  sales Sale[]
+}
+
+// Products Catalog
+model Product {
+  id                String   @id @default(uuid())
+  name              String
+  barcode           String   @unique // Primary unique barcode identifier (replaces SKU)
+  description       String?
+  categoryId        String?
+  supplierId        String?
+  purchasePrice     Float    @default(0.0) // Unit cost basis for gross margin
+  sellingPrice      Float    @default(0.0)
+  customValue       String?  // Custom value displayed on label to the left of MRP
+  taxRate           Float    @default(0.0) // Percentage (e.g. 18.0 for 18% GST)
+  currentStock      Int      @default(0)
+  minStockThreshold Int      @default(5)
+  unit              String   @default("pcs")
+  isArchived        Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  category           Category?           @relation(fields: [categoryId], references: [id])
+  supplier           Supplier?           @relation(fields: [supplierId], references: [id])
+  inventoryMovements InventoryMovement[]
+  saleItems          SaleItem[]
+  purchaseItems      PurchaseItem[]
+  devices            DeviceUnit[]
+
+  @@index([barcode])
+  @@index([name])
+}
+
+// Immutable Stock Movement History / Ledger
+model InventoryMovement {
+  id             String   @id @default(uuid())
+  productId      String
+  type           String   // OPENING, PURCHASE, SALE, ADJUSTMENT, RETURN, DAMAGE
+  quantityChange Int      // positive for increase, negative for decrease
+  stockBefore    Int
+  stockAfter     Int
+  reason         String?
+  referenceId    String?  // saleId, purchaseId, or manual note
+  userId         String?
+  createdAt      DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id])
+  user    User?   @relation(fields: [userId], references: [id])
+
+  @@index([productId])
+  @@index([createdAt])
+}
+
+// Purchase Orders from Suppliers
+model Purchase {
+  id             String    @id @default(uuid())
+  purchaseNumber String    @unique
+  supplierId     String?
+  totalAmount    Float     @default(0.0)
+  status         String    @default("PENDING") // PENDING, RECEIVED, CANCELLED
+  receivedAt     DateTime?
+  notes          String?
+  userId         String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  supplier Supplier?      @relation(fields: [supplierId], references: [id])
+  user     User?          @relation(fields: [userId], references: [id])
+  items    PurchaseItem[]
+}
+
+model PurchaseItem {
+  id         String @id @default(uuid())
+  purchaseId String
+  productId  String
+  quantity   Int
+  unitCost   Float
+  subtotal   Float
+
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id])
+}
+
+// Sales / POS Transactions
+model Sale {
+  id             String   @id @default(uuid())
+  invoiceNumber  String   @unique
+  customerId     String?
+  subtotal       Float    @default(0.0)
+  discountAmount Float    @default(0.0)
+  taxAmount      Float    @default(0.0)
+  totalAmount    Float    @default(0.0)
+  paymentMethod  String   @default("CASH") // CASH, UPI, CARD, SPLIT
+  cashReceived   Float    @default(0.0)
+  changeAmount   Float    @default(0.0)
+  status         String   @default("COMPLETED") // COMPLETED, REFUNDED, CANCELLED
+  notes          String?
+  cashierId      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  customer Customer?  @relation(fields: [customerId], references: [id])
+  cashier  User?      @relation(fields: [cashierId], references: [id])
+  items    SaleItem[]
+
+  @@index([invoiceNumber])
+  @@index([createdAt])
+}
+
+// Sale Line Items (Snapshots preserving price & tax at time of sale)
+model SaleItem {
+  id          String @id @default(uuid())
+  saleId      String
+  productId   String
+  productName String
+  barcode     String // Primary unique scan identifier
+  unitPrice   Float
+  unitCost    Float  @default(0.0) // for historical COGS profit calculation
+  quantity    Int
+  discount    Float  @default(0.0)
+  taxRate     Float  @default(0.0)
+  taxAmount   Float  @default(0.0)
+  subtotal    Float  // price * quantity - discount
+  total       Float  // subtotal + taxAmount
+
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+  devices DeviceUnit[]
+}
+
+// Global Shop Profile & POS Configurations
+model ShopSettings {
+  id                 String   @id @default("default")
+  shopName           String   @default("CellPoint Barcode")
+  address            String   @default("Shop #12, Galaxy Commercial Center, MG Road")
+  phone              String   @default("+91 98765 43210")
+  email              String   @default("contact@cellpointbarcode.com")
+  gstin              String   @default("27AAAAA0000A1Z5")
+  currencySymbol     String   @default("₹")
+  taxRateDefault     Float    @default(18.0)
+  receiptFooter      String   @default("Thank you for shopping with CellPoint Barcode! Goods once sold can be exchanged within 7 days.")
+  allowNegativeStock Boolean  @default(false)
+  updatedAt          DateTime @updatedAt
+}
+
+// Individual Device/Unit Tracking with unique Serial & IMEI
+model DeviceUnit {
+  id             String    @id @default(uuid())
+  productId      String
+  imei1          String?   @unique
+  imei2          String?
+  serialNumber   String?   @unique
+  barcode        String    @unique // Unique scan barcode for this specific piece
+  color          String?
+  storage        String?
+  condition      String    @default("NEW") // NEW, OPEN_BOX, REFURBISHED, PRE_OWNED
+  status         String    @default("IN_STOCK") // IN_STOCK, RESERVED, SOLD, RETURNED, REPAIR
+  
+  // Purchase information: what price bought, when, from whom
+  purchasePrice  Float     @default(0.0)
+  customValue    String?   // Custom value displayed on label to the left of MRP
+  purchaseDate   DateTime  @default(now())
+  supplierId     String?
+  purchaseInvoiceNo String?
+  notes          String?
+
+  // Sold information (when sold via POS or direct)
+  soldPrice      Float?
+  soldAt         DateTime?
+  saleItemId     String?
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  product        Product   @relation(fields: [productId], references: [id])
+  supplier       Supplier? @relation(fields: [supplierId], references: [id])
+  saleItem       SaleItem? @relation(fields: [saleItemId], references: [id])
+
+  @@index([barcode])
+  @@index([imei1])
+  @@index([serialNumber])
+  @@index([status])
+  @@index([purchaseDate])
+}
+
+// Enterprise Audit Logging for Sensitive Actions
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String   // LOGIN, LOGOUT, SALE_CREATE, SALE_REFUND, STOCK_ADJUST, PRODUCT_DELETE, etc.
+  entity    String   // Product, Sale, Inventory, User
+  entityId  String?
+  details   String?  // JSON or text description
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([createdAt])
+  @@index([action])
+}
