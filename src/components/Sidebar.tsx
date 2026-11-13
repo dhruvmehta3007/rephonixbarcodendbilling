@@ -60,7 +60,7 @@ export default function Sidebar({ currentTab, setCurrentTab, user, onLogout }: S
   const isAdmin = user?.role === 'ADMIN';
 
   return (
-    <aside className="w-64 bg-[#fbfbfd]/90 backdrop-blur-2xl border-r border-black/[0.08] flex flex-col justify-between flex-shrink-0 h-screen select-none">
+    <aside className="w-64 bg-[#fbfbfd]/90 backdrop-blur-2xl border-r border-black/[0.08] flex flex-col justify-between flex-shrink-0 h-screen select-none no-print">
       {/* Brand Header */}
       <div>
         <div className="p-5 border-b border-black/[0.06] flex items-center gap-3">

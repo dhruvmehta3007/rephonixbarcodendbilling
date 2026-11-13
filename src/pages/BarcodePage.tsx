@@ -249,11 +249,11 @@ export default function BarcodePage() {
                   Select products on the left to generate barcode preview stickers.
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4 bg-white border border-black/[0.08] rounded-2xl">
+                <div className="printable-labels-container grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4 bg-white border border-black/[0.08] rounded-2xl">
                   {printableLabels.map((prod, idx) => (
                     <div
                       key={idx}
-                      className="p-3 bg-white text-black rounded-lg shadow-md flex flex-col justify-between items-center text-center select-none"
+                      className="batch-barcode-sticker p-3 bg-white text-black rounded-lg shadow-md flex flex-col justify-between items-center text-center select-none"
                       style={{
                         width: '100%',
                         aspectRatio: labelSize === '50x30' ? '50/30' : '50/25',

@@ -898,20 +898,20 @@ export default function DevicesPage() {
             </div>
 
             {/* Sticker Preview Box: CELL POINT Branding + Device Name + Barcode + MRP */}
-            <div className="my-6 p-4 bg-white text-black rounded-xl shadow-2xl text-center font-sans border border-gray-200">
+            <div className="printable-label my-6 p-4 bg-white text-black rounded-xl shadow-2xl text-center font-sans border border-gray-200">
               {/* CELL POINT Header */}
-              <div className="font-black text-xs tracking-wider text-blue-900 uppercase border-b border-gray-300 pb-1 mb-1.5 flex items-center justify-between px-1">
+              <div className="w-full font-black text-xs tracking-wider text-blue-900 uppercase border-b border-gray-300 pb-1 mb-1 flex items-center justify-between px-1">
                 <span>CELL POINT</span>
                 <span className="text-[10px] text-gray-500 font-bold">RETAIL</span>
               </div>
 
               {/* Device Name */}
-              <div className="font-extrabold text-sm text-gray-900 leading-tight line-clamp-2 px-1">
+              <div className="w-full font-extrabold text-sm text-gray-900 leading-tight line-clamp-2 px-1">
                 {printDevice.product?.name}
               </div>
 
               {/* Barcode SVG */}
-              <div className="my-2 flex justify-center overflow-hidden">
+              <div className="w-full my-1.5 flex justify-center items-center overflow-hidden">
                 <div
                   dangerouslySetInnerHTML={{
                     __html: generateBarcodeSvg({
@@ -926,7 +926,7 @@ export default function DevicesPage() {
               </div>
 
               {/* Selling Price / MRP & Value */}
-              <div className="flex items-center justify-between border-t border-gray-200 pt-1 px-1">
+              <div className="w-full flex items-center justify-between border-t border-gray-200 pt-1 px-1">
                 <span className="text-[10px] font-mono font-semibold text-gray-600 tracking-wider">
                   {printDevice.customValue || printDevice.product?.customValue || printDevice.barcode}
                 </span>
