@@ -75,11 +75,15 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
+import { syncAllToFirestore } from './syncAll';
+
 // Start listening if not in test mode
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Rephonix Shop Management Server running on port ${PORT}`);
     console.log(`📡 API available at http://0.0.0.0:${PORT}/api`);
+    // Non-blocking sync to Firebase Firestore
+    syncAllToFirestore().catch(err => console.error('Initial Firebase sync failed:', err.message));
   });
 }
 
