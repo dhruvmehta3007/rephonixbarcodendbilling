@@ -897,46 +897,46 @@ export default function DevicesPage() {
               </button>
             </div>
 
-            {/* Sticker Preview Box: CELL POINT Branding + Device Name + Barcode + MRP (50x25mm thermal roll label) */}
+            {/* Sticker Preview Box: CELL POINT Branding + Device Name + Barcode + MRP (Thermal roll label) */}
             <div 
-              className="printable-label my-6 p-2.5 bg-white text-black rounded-lg shadow-xl text-center font-sans border border-gray-300 mx-auto flex flex-col justify-between"
+              className="printable-label my-6 p-2 bg-white text-black rounded-lg shadow-xl text-center font-sans border border-gray-300 mx-auto flex flex-col justify-between"
               style={{
                 width: '100%',
-                maxWidth: '300px',
+                maxWidth: '320px',
                 aspectRatio: '50/25',
               }}
             >
-              {/* CELL POINT Header */}
-              <div className="w-full flex items-center justify-between border-b border-gray-400 pb-0.5 px-1 shrink-0">
-                <span className="font-black text-[12px] tracking-wider text-blue-900 uppercase">CELL POINT</span>
-                <span className="text-[8.5px] text-gray-600 font-bold tracking-normal uppercase">VERIFIED PIECE</span>
+              {/* Header: CELL POINT + VERIFIED */}
+              <div className="w-full flex items-center justify-between border-b border-gray-800 pb-0.5 px-0.5 shrink-0">
+                <span className="font-black text-[11px] tracking-wider text-blue-900 uppercase">CELL POINT</span>
+                <span className="text-[8px] text-gray-700 font-bold uppercase tracking-wide">VERIFIED DEVICE</span>
               </div>
 
-              {/* Device Name - Bold, Prominent & Highly Readable */}
-              <div className="w-full font-black text-[13px] text-gray-950 uppercase leading-snug tracking-tight px-0.5 py-0.5 shrink-0 truncate">
+              {/* Product / Device Name */}
+              <div className="w-full font-black text-[11px] text-gray-950 uppercase leading-snug tracking-tight px-0.5 py-0.5 shrink-0 truncate">
                 {printDevice.product?.name}
               </div>
 
-              {/* Barcode SVG - Crisp 50mm width vector */}
-              <div className="w-full flex justify-center items-center overflow-hidden my-0.5 max-h-[9.5mm]">
+              {/* Barcode Vector - Clean, Centered, High Contrast */}
+              <div className="w-full flex justify-center items-center overflow-hidden my-0.5 flex-1 max-h-[11mm]">
                 <div
                   className="w-full flex justify-center items-center"
                   dangerouslySetInnerHTML={{
                     __html: generateBarcodeSvg({
                       type: 'code128',
                       value: printDevice.barcode || printDevice.imei1 || 'DEVICE',
-                      height: 8.5,
-                      scale: 1.25,
+                      height: 10,
+                      scale: 1.35,
                       includeText: false,
                     }),
                   }}
                 />
               </div>
 
-              {/* Barcode / Value Code + Selling Price */}
-              <div className="w-full flex items-center justify-between border-t border-gray-400 pt-0.5 px-1 shrink-0 font-mono text-[10px] font-bold text-gray-900">
-                <span>{printDevice.customValue || printDevice.product?.customValue || printDevice.barcode}</span>
-                <span className="font-black text-[12.5px] text-gray-950">
+              {/* Footer: Barcode Number + MRP Price (Full Width, No Cutoff) */}
+              <div className="w-full flex items-center justify-between border-t border-gray-800 pt-0.5 px-0.5 shrink-0 font-mono text-[9px] font-bold text-gray-950">
+                <span className="tracking-wider">{printDevice.customValue || printDevice.product?.customValue || printDevice.barcode}</span>
+                <span className="font-black text-[11px] text-gray-950 ml-auto whitespace-nowrap">
                   MRP: ₹{(printDevice.product?.sellingPrice || 0).toLocaleString('en-IN')}
                 </span>
               </div>
