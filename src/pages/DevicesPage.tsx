@@ -988,9 +988,9 @@ export default function DevicesPage() {
                 overflow: 'hidden',
               }}
             >
-              {/* Header: CELL POINT */}
+              {/* Header: THE CELL POINT */}
               <div className="w-full flex items-center justify-between border-b border-gray-300 pb-0.5 px-0.5 shrink-0">
-                <span className="font-extrabold text-[8px] tracking-wider text-blue-900 uppercase">CELL POINT</span>
+                <span className="font-extrabold text-[8px] tracking-wider text-blue-900 uppercase">THE CELL POINT</span>
                 <span className="text-[6.5px] text-gray-600 font-bold uppercase tracking-tight">VERIFIED</span>
               </div>
 
@@ -1130,7 +1130,7 @@ export default function DevicesPage() {
         <div id="printable-root" className="printable-labels-container">
           <div className="batch-barcode-sticker">
             <div className="w-full flex items-center justify-between border-b border-black/20 pb-0.5 leading-none">
-              <span className="text-[8px] font-black text-blue-900 uppercase tracking-wider">CELL POINT</span>
+              <span className="text-[8px] font-black text-blue-900 uppercase tracking-wider">THE CELL POINT</span>
             </div>
             <div className="w-full text-[8px] font-bold text-black truncate uppercase tracking-tight my-0.5 leading-tight text-left">
               {printDevice.product?.name || 'DEVICE'}

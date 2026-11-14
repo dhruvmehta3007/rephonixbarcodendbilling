@@ -44,7 +44,11 @@ export function buildCellPointTSPLJob(
     let priceText = '';
     if (item.price !== undefined && item.price !== null && item.price !== '') {
       const numPrice = Number(item.price);
-      priceText = isNaN(numPrice) ? `Rs.${item.price}` : `Rs.${Math.round(numPrice)}`;
+      if (!isNaN(numPrice)) {
+        priceText = `Rs. ${Math.round(numPrice)}`;
+      } else {
+        priceText = `Rs. ${item.price}`;
+      }
     }
 
     commands.push(`CLS`);
@@ -53,26 +57,29 @@ export function buildCellPointTSPLJob(
       // Compact 30x15 mm layout (240x120 dots @ 203 DPI)
       const cleanName = (item.name || 'PRODUCT').slice(0, 24).toUpperCase().replace(/"/g, '');
       const priceWidth = priceText.length * 8;
-      const priceX = Math.max(120, 228 - priceWidth);
+      const priceX = Math.max(120, 230 - priceWidth);
 
-      commands.push(`TEXT 80,4,"1",0,1,1,"CELL POINT"`);
-      commands.push(`TEXT 12,18,"1",0,1,1,"${cleanName}"`);
-      commands.push(`BARCODE 16,34,"128",30,0,0,2,2,"${cleanBarcode}"`);
-      commands.push(`TEXT 12,72,"1",0,1,1,"${cleanBarcode}"`);
+      // Centered: 14 chars in Font 1 (8x12) = 112 dots -> (240 - 112)/2 = 64
+      commands.push(`TEXT 64,4,"1",0,1,1,"THE CELL POINT"`);
+      commands.push(`TEXT 8,18,"1",0,1,1,"${cleanName}"`);
+      // Code 128: narrow=2, wide=2 (1:1 ratio) with clean quiet zones
+      commands.push(`BARCODE 8,34,"128",30,0,0,2,2,"${cleanBarcode}"`);
+      const barcodeFont = cleanBarcode.length > 12 ? '1' : '1';
+      commands.push(`TEXT 8,68,"${barcodeFont}",0,1,1,"${cleanBarcode.slice(0, 14)}"`);
       if (priceText) {
-        commands.push(`TEXT ${priceX},72,"1",0,1,1,"${priceText}"`);
+        commands.push(`TEXT ${priceX},68,"1",0,1,1,"${priceText}"`);
       }
     } else {
       // Authoritative 50x25 mm standard layout (400x200 dots @ 203 DPI)
       const cleanName = (item.name || 'PRODUCT').slice(0, 36).toUpperCase().replace(/"/g, '');
       const nameFont = cleanName.length > 22 ? '1' : '2';
-      const nameY = cleanName.length > 22 ? 36 : 32;
+      const nameY = cleanName.length > 22 ? 32 : 28;
 
-      // Header: CELL POINT (flush left)
-      commands.push(`TEXT 0,8,"2",0,1,1,"CELL POINT"`);
+      // Header: THE CELL POINT (Font 2 = 12x20 dots, 14 chars = 168 dots, centered at X=116, Y=8)
+      commands.push(`TEXT 116,8,"2",0,1,1,"THE CELL POINT"`);
 
-      // Product Name (flush left)
-      commands.push(`TEXT 0,${nameY},"${nameFont}",0,1,1,"${cleanName}"`);
+      // Product Name (2mm inset from edge to prevent mechanical clipping)
+      commands.push(`TEXT 16,${nameY},"${nameFont}",0,1,1,"${cleanName}"`);
 
       // Barcode dimension & quiet zone calculation
       const isPureDigits = /^\d+$/.test(cleanBarcode);
@@ -83,22 +90,30 @@ export function buildCellPointTSPLJob(
       let narrow = 2;
       let barcodeWidth = estimatedModules * narrow;
 
-      if (barcodeWidth > 380) {
+      // Keep barcode strictly <= 360 dots to preserve at least 20 dots quiet zone on both sides
+      if (barcodeWidth > 360) {
         narrow = 1;
         barcodeWidth = estimatedModules * 1;
       }
 
-      // Barcode starting at X=0 (zero left padding on slip)
-      commands.push(`BARCODE 0,56,"128",72,0,0,${narrow},${narrow},"${cleanBarcode}"`);
+      // Centered X position with at least 16 dots (2mm) margin
+      const startX = Math.max(16, Math.floor((400 - barcodeWidth) / 2));
 
-      // Footer: Barcode text on left (flush left)
-      commands.push(`TEXT 0,146,"2",0,1,1,"${cleanBarcode}"`);
+      // Barcode: Code 128, Height=66 dots (~8.2mm), Y=52 to Y=118
+      commands.push(`BARCODE ${startX},52,"128",66,0,0,${narrow},${narrow},"${cleanBarcode}"`);
+
+      // Barcode text on left: capped to ensure it never encroaches on 6-digit price space
+      // If barcode > 14 chars, switch to Font 1 (8 dots/char) to prevent overlapping price
+      const barcodeFont = cleanBarcode.length > 14 ? '1' : '2';
+      commands.push(`TEXT 16,128,"${barcodeFont}",0,1,1,"${cleanBarcode}"`);
 
       if (priceText) {
-        // Price on right
+        // Price on right: guaranteed minimum space for 6+ digits (e.g. Rs. 150000 / Rs. 999999)
+        // Font 3 is 16x24 dots bold. 10 chars = 160 dots.
+        // Right-align from X=384, with minimum left boundary at X=190
         const priceWidth = priceText.length * 16;
-        const priceX = Math.max(180, 384 - priceWidth);
-        commands.push(`TEXT ${priceX},144,"3",0,1,1,"${priceText}"`);
+        const priceX = Math.max(190, 384 - priceWidth);
+        commands.push(`TEXT ${priceX},128,"3",0,1,1,"${priceText}"`);
       }
     }
 

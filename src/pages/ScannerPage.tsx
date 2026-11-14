@@ -666,7 +666,7 @@ export default function ScannerPage({ onNavigate }: ScannerPageProps) {
         <div id="printable-root" className="printable-labels-container">
           <div className="batch-barcode-sticker">
             <div className="w-full flex items-center justify-between border-b border-black/20 pb-0.5 leading-none">
-              <span className="text-[8px] font-black text-blue-900 uppercase tracking-wider">CELL POINT</span>
+              <span className="text-[8px] font-black text-blue-900 uppercase tracking-wider">THE CELL POINT</span>
             </div>
             <div className="w-full text-[8px] font-bold text-black truncate uppercase tracking-tight my-0.5 leading-tight text-left">
               {lookupResult.type === 'DEVICE_UNIT' ? (lookupResult.data.product?.name || 'DEVICE') : lookupResult.data.name}

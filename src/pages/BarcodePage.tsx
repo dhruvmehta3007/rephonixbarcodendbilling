@@ -115,7 +115,7 @@ export default function BarcodePage() {
       const items = printableLabels.map((p) => ({
         name: p.name,
         barcode: p.uniqueBarcode || p.customValue || p.barcode,
-        price: p.sellingPrice || 0,
+        price: p.sellingPrice ?? p.price ?? 0,
         quantity: 1,
       }));
       const tsplCode = buildCellPointTSPLJob(items, {
@@ -142,7 +142,7 @@ export default function BarcodePage() {
       const items = printableLabels.map((p) => ({
         name: p.name,
         barcode: p.uniqueBarcode || p.customValue || p.barcode,
-        price: p.sellingPrice || 0,
+        price: p.sellingPrice ?? p.price ?? 0,
         quantity: 1, // 1 label per unique piece
       }));
       const res = await api.print.directTSPL({
@@ -388,9 +388,9 @@ export default function BarcodePage() {
                         overflow: 'hidden',
                       }}
                     >
-                      {/* CELL POINT Brand Header */}
+                      {/* THE CELL POINT Brand Header */}
                       <div className="w-full flex items-center justify-between border-b border-gray-200 pb-0.5 leading-none">
-                        <span className="text-[8px] font-black text-blue-900 uppercase tracking-wider">CELL POINT</span>
+                        <span className="text-[8px] font-black text-blue-900 uppercase tracking-wider">THE CELL POINT</span>
                         {prod.isSerialized && (
                           <span className="text-[6.5px] font-bold px-1 rounded bg-blue-100 text-blue-800">
                             PIECE #{prod.pieceNumber}
@@ -421,13 +421,13 @@ export default function BarcodePage() {
                       {/* Footer: Barcode text + Price */}
                       <div className="w-full flex items-center justify-between text-[7px] border-t border-gray-200 pt-0.5 leading-none pl-0">
                         {showBarcodeText && (
-                          <span className="font-mono font-semibold text-gray-700 truncate max-w-[55%]">
+                          <span className="font-mono font-semibold text-gray-700 truncate max-w-[45%] text-left">
                             {prod.uniqueBarcode || prod.customValue || prod.barcode}
                           </span>
                         )}
                         {showPrice && (
-                          <span className="font-extrabold text-gray-950 ml-auto whitespace-nowrap">
-                            ₹{(prod.sellingPrice || 0).toLocaleString('en-IN')}
+                          <span className="font-extrabold text-gray-950 ml-auto text-right whitespace-nowrap min-w-[50%]">
+                            ₹{Number(prod.sellingPrice ?? prod.price ?? 0).toLocaleString('en-IN')}
                           </span>
                         )}
                         {!showPrice && !showBarcodeText && (
@@ -457,9 +457,9 @@ export default function BarcodePage() {
         <div id="printable-root" className="printable-labels-container">
           {printableLabels.map((prod, idx) => (
             <div key={idx} className="batch-barcode-sticker">
-              {/* CELL POINT Brand Header */}
+              {/* THE CELL POINT Brand Header */}
               <div className="w-full flex items-center justify-between border-b border-black/20 pb-0.5 leading-none">
-                <span className="text-[8px] font-black text-blue-900 uppercase tracking-wider">CELL POINT</span>
+                <span className="text-[8px] font-black text-blue-900 uppercase tracking-wider">THE CELL POINT</span>
                 {prod.isSerialized && (
                   <span className="text-[6.5px] font-bold px-1 rounded bg-blue-100 text-blue-800">
                     PIECE #{prod.pieceNumber}
@@ -490,13 +490,13 @@ export default function BarcodePage() {
               {/* Footer: Barcode text + Price */}
               <div className="w-full flex items-center justify-between text-[7px] border-t border-black/20 pt-0.5 leading-none pl-0">
                 {showBarcodeText && (
-                  <span className="font-mono font-semibold text-black truncate max-w-[55%]">
+                  <span className="font-mono font-semibold text-black truncate max-w-[45%] text-left">
                     {prod.uniqueBarcode || prod.customValue || prod.barcode}
                   </span>
                 )}
                 {showPrice && (
-                  <span className="font-extrabold text-black ml-auto whitespace-nowrap">
-                    ₹{(prod.sellingPrice || 0).toLocaleString('en-IN')}
+                  <span className="font-extrabold text-black ml-auto text-right whitespace-nowrap min-w-[50%]">
+                    ₹{Number(prod.sellingPrice ?? prod.price ?? 0).toLocaleString('en-IN')}
                   </span>
                 )}
                 {!showPrice && !showBarcodeText && (
