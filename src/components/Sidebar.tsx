@@ -29,9 +29,6 @@ export type NavItem =
   | 'categories' 
   | 'sales' 
   | 'barcodes' 
-  | 'customers' 
-  | 'suppliers' 
-  | 'reports' 
   | 'users' 
   | 'settings';
 
@@ -53,9 +50,6 @@ export default function Sidebar({ currentTab, setCurrentTab, user, onLogout }: S
     { id: 'categories' as NavItem, label: 'Categories', icon: FolderTree },
     { id: 'sales' as NavItem, label: 'Sales History', icon: Receipt },
     { id: 'barcodes' as NavItem, label: 'Barcode Studio', icon: Barcode },
-    { id: 'customers' as NavItem, label: 'Customers', icon: Users },
-    { id: 'suppliers' as NavItem, label: 'Suppliers & PO', icon: Truck },
-    { id: 'reports' as NavItem, label: 'Reports & P&L', icon: BarChart3, adminOnly: true },
     { id: 'users' as NavItem, label: 'Users & Roles', icon: ShieldCheck, adminOnly: true },
     { id: 'settings' as NavItem, label: 'Shop Settings', icon: Settings, adminOnly: true },
   ];
@@ -71,8 +65,8 @@ export default function Sidebar({ currentTab, setCurrentTab, user, onLogout }: S
             <Barcode size={20} className="stroke-[2.5]" />
           </div>
           <div>
-            <div className="font-bold text-[15px] tracking-tight text-[#1d1d1f] flex items-center gap-1.5">
-              CellPoint <span className="text-[#0071e3] font-semibold text-[10px] px-2 py-0.5 rounded-full bg-[#0071e3]/10 uppercase tracking-wider">Barcode</span>
+            <div className="font-extrabold text-[15px] tracking-tight text-slate-900 flex items-center gap-1.5">
+              The Cell Point <span className="text-[#0071e3] font-semibold text-[10px] px-2 py-0.5 rounded-full bg-[#0071e3]/10 uppercase tracking-wider">Barcode</span>
             </div>
             <div className="text-[11px] text-[#86868b] font-normal">Smart Retail POS</div>
           </div>

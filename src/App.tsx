@@ -89,9 +89,6 @@ export default function App() {
         {currentTab === 'categories' && <CategoriesPage />}
         {currentTab === 'sales' && <SalesPage />}
         {currentTab === 'barcodes' && <BarcodePage />}
-        {currentTab === 'customers' && <CustomersPage />}
-        {currentTab === 'suppliers' && <SuppliersPage />}
-        {currentTab === 'reports' && <ReportsPage />}
         {currentTab === 'users' && <UsersPage />}
         {currentTab === 'settings' && <SettingsPage />}
       </main>

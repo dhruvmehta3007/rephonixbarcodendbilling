@@ -26,7 +26,6 @@ export default function BarcodePage() {
   const [labelSize, setLabelSize] = useState<'50x25'>('50x25');
   const [showPrice, setShowPrice] = useState(true); // Default to showing MRP / selling price
   const [showBarcodeText, setShowBarcodeText] = useState(true);
-  const [uniqueSerialized, setUniqueSerialized] = useState(true); // Every printed sticker gets a unique piece suffix
   const [directPrinting, setDirectPrinting] = useState(false);
   const [isPrintingPortal, setIsPrintingPortal] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -42,13 +41,11 @@ export default function BarcodePage() {
       const prods = res.data || [];
       setProducts(prods);
 
-      // Default select first 3 products with 2 copies each
+      // Default select only the first product with 1 copy
       if (prods.length > 0) {
-        const initialIds = prods.slice(0, 3).map((p: any) => p.id);
-        setSelectedProductIds(initialIds);
-        const initialQty: Record<string, number> = {};
-        initialIds.forEach((id: string) => (initialQty[id] = 2));
-        setQuantities(initialQty);
+        const firstId = prods[0].id;
+        setSelectedProductIds([firstId]);
+        setQuantities({ [firstId]: 1 });
       }
     } catch (err) {
       console.error(err);
@@ -69,30 +66,32 @@ export default function BarcodePage() {
   };
 
   const updateQuantity = (id: string, count: number) => {
-    setQuantities((prev) => ({ ...prev, [id]: Math.max(1, count) }));
+    const prod = products.find((p) => p.id === id);
+    const maxStock = prod?.devices?.length || prod?.currentStock || 999;
+    const validCount = Math.max(1, Math.min(count, maxStock));
+    setQuantities((prev) => ({ ...prev, [id]: validCount }));
   };
 
   // Generate queue of labels to print with unique piece barcodes
   const printableLabels = selectedProductIds.flatMap((id) => {
     const prod = products.find((p) => p.id === id);
     if (!prod) return [];
-    const count = quantities[id] || 1;
-    const baseCode = prod.customValue || prod.barcode || '000000';
+    const inStockUnits = prod.devices && prod.devices.length > 0 ? prod.devices : [];
+    const count = Math.max(1, quantities[id] || 1);
 
     return Array.from({ length: count }, (_, idx) => {
       const pieceNum = idx + 1;
-      // If uniqueSerialized is active and count > 1, serialize with -01, -02...
-      // Every physical label gets a unique barcode so handheld scanners detect distinct units!
-      const pieceBarcode = (uniqueSerialized && count > 1)
-        ? `${baseCode}-${String(pieceNum).padStart(2, '0')}`
-        : baseCode;
+      const unit = inStockUnits[idx];
+      // Every physical piece gets its own real unique 15-digit IMEI and its secret label code
+      const pieceBarcode = unit?.imei1 || unit?.barcode || prod.barcode || '000000';
+      const pieceCustomValue = unit?.customValue || prod.customValue;
 
       return {
         ...prod,
         uniqueBarcode: pieceBarcode,
+        customValue: pieceCustomValue,
         pieceNumber: pieceNum,
         totalPieces: count,
-        isSerialized: count > 1 && uniqueSerialized,
       };
     });
   });
@@ -114,7 +113,8 @@ export default function BarcodePage() {
     try {
       const items = printableLabels.map((p) => ({
         name: p.name,
-        barcode: p.uniqueBarcode || p.customValue || p.barcode,
+        barcode: p.uniqueBarcode || p.barcode,
+        customValue: p.customValue,
         price: p.sellingPrice ?? p.price ?? 0,
         quantity: 1,
       }));
@@ -141,7 +141,8 @@ export default function BarcodePage() {
     try {
       const items = printableLabels.map((p) => ({
         name: p.name,
-        barcode: p.uniqueBarcode || p.customValue || p.barcode,
+        barcode: p.uniqueBarcode || p.barcode,
+        customValue: p.customValue,
         price: p.sellingPrice ?? p.price ?? 0,
         quantity: 1, // 1 label per unique piece
       }));
@@ -254,22 +255,24 @@ export default function BarcodePage() {
                       )}
                       <div className="overflow-hidden">
                         <div className="text-xs font-semibold text-[#1d1d1f] truncate">{p.name}</div>
-                        <div className="text-[10px] text-[#86868b] font-mono">
-                          {p.barcode} • ₹{p.sellingPrice}
+                        <div className="text-[10px] text-[#86868b] flex items-center gap-1.5 mt-0.5">
+                          <span>₹{Number(p.sellingPrice).toLocaleString('en-IN')}</span>
+                          <span>•</span>
+                          <span className="text-emerald-700 font-semibold">{p.currentStock || (p.devices ? p.devices.length : 0)} pcs in stock</span>
                         </div>
                       </div>
                     </div>
 
                     {isSelected && (
-                      <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                        <span className="text-[10px] text-[#86868b]">Qty:</span>
+                      <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <span className="text-[10px] text-[#86868b] font-medium">Qty:</span>
                         <input
                           type="number"
                           min="1"
-                          max="999"
+                          max={p.devices?.length || p.currentStock || 999}
                           value={quantities[p.id] || 1}
                           onChange={(e) => updateQuantity(p.id, parseInt(e.target.value, 10) || 1)}
-                          className="w-12 px-1.5 py-0.5 rounded bg-[#f5f5f7] border border-black/[0.08] text-[#1d1d1f] font-mono text-xs text-center focus:outline-none"
+                          className="w-12 px-1.5 py-0.5 rounded bg-white border border-black/[0.12] text-[#1d1d1f] font-mono text-xs text-center focus:outline-none focus:border-blue-500"
                         />
                       </div>
                     )}
@@ -312,24 +315,6 @@ export default function BarcodePage() {
                 <label className="flex items-center gap-1.5 cursor-pointer">
                   <input type="checkbox" checked={showBarcodeText} onChange={(e) => setShowBarcodeText(e.target.checked)} />
                   <span>Show Barcode</span>
-                </label>
-              </div>
-
-              {/* Unique Piece Barcodes Toggle for Handheld Scanning */}
-              <div className="pt-1">
-                <label className="flex items-center gap-2 cursor-pointer p-2 rounded-xl bg-blue-50/80 border border-blue-200/80 text-blue-900 transition-all hover:bg-blue-100/80">
-                  <input
-                    type="checkbox"
-                    checked={uniqueSerialized}
-                    onChange={(e) => setUniqueSerialized(e.target.checked)}
-                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
-                  />
-                  <div className="flex-1">
-                    <span className="block text-xs font-bold leading-tight">Unique Piece Barcodes</span>
-                    <span className="block text-[10px] text-blue-700/80 leading-tight">
-                      Adds piece suffix (-01, -02...) so each unit has a distinct barcode
-                    </span>
-                  </div>
                 </label>
               </div>
 
@@ -390,22 +375,17 @@ export default function BarcodePage() {
                     >
                       {/* THE CELL POINT Brand Header */}
                       <div className="w-full flex items-center justify-between border-b border-gray-200 pb-0.5 leading-none">
-                        <span className="text-[8px] font-black text-blue-900 uppercase tracking-wider">THE CELL POINT</span>
-                        {prod.isSerialized && (
-                          <span className="text-[6.5px] font-bold px-1 rounded bg-blue-100 text-blue-800">
-                            PIECE #{prod.pieceNumber}
-                          </span>
-                        )}
+                        <span className="text-[10px] font-black text-black uppercase tracking-wider mx-auto">THE CELL POINT</span>
                       </div>
 
-                      {/* Device / Product Name */}
-                      <div className="w-full text-[8px] font-bold text-gray-950 truncate uppercase tracking-tight my-0.5 leading-tight text-left">
+                      {/* Device / Product Name (Reduced Left Margin) */}
+                      <div className="w-full text-[7.5px] font-bold text-gray-950 truncate uppercase tracking-tight my-0.5 leading-tight text-left pl-1.5 pr-1">
                         {prod.name}
                       </div>
 
-                      {/* Barcode Vector SVG (crisp high contrast for preview) */}
+                      {/* Barcode Vector SVG (Reduced Left Margin) */}
                       <div
-                        className="w-full flex items-center justify-start my-0.5 overflow-hidden max-h-[14mm] pl-0"
+                        className="w-full flex items-center justify-start my-0.5 overflow-hidden max-h-[14mm] pl-1.5"
                         dangerouslySetInnerHTML={{
                           __html: generateBarcodeSvg({
                             type: symbology,
@@ -418,15 +398,15 @@ export default function BarcodePage() {
                         }}
                       />
 
-                      {/* Footer: Barcode text + Price */}
-                      <div className="w-full flex items-center justify-between text-[7px] border-t border-gray-200 pt-0.5 leading-none pl-0">
+                      {/* Footer: Barcode text + Price (Balanced Baseline) */}
+                      <div className="w-full flex items-baseline justify-between text-[7px] border-t border-gray-200 pt-0.5 leading-none px-0.5">
                         {showBarcodeText && (
-                          <span className="font-mono font-semibold text-gray-700 truncate max-w-[45%] text-left">
-                            {prod.uniqueBarcode || prod.customValue || prod.barcode}
+                          <span className="font-mono font-semibold text-gray-700 truncate max-w-[48%] text-left">
+                            {prod.customValue || prod.uniqueBarcode || prod.barcode}
                           </span>
                         )}
                         {showPrice && (
-                          <span className="font-extrabold text-gray-950 ml-auto text-right whitespace-nowrap min-w-[50%]">
+                          <span className="font-extrabold text-gray-950 ml-auto text-right whitespace-nowrap">
                             ₹{Number(prod.sellingPrice ?? prod.price ?? 0).toLocaleString('en-IN')}
                           </span>
                         )}
@@ -459,22 +439,17 @@ export default function BarcodePage() {
             <div key={idx} className="batch-barcode-sticker">
               {/* THE CELL POINT Brand Header */}
               <div className="w-full flex items-center justify-between border-b border-black/20 pb-0.5 leading-none">
-                <span className="text-[8px] font-black text-blue-900 uppercase tracking-wider">THE CELL POINT</span>
-                {prod.isSerialized && (
-                  <span className="text-[6.5px] font-bold px-1 rounded bg-blue-100 text-blue-800">
-                    PIECE #{prod.pieceNumber}
-                  </span>
-                )}
+                <span className="text-[10px] font-black text-black uppercase tracking-wider mx-auto">THE CELL POINT</span>
               </div>
 
-              {/* Device / Product Name */}
-              <div className="w-full text-[8px] font-bold text-black truncate uppercase tracking-tight my-0.5 leading-tight text-left">
+              {/* Device / Product Name (Reduced Left Margin) */}
+              <div className="w-full text-[7.5px] font-bold text-black truncate uppercase tracking-tight my-0.5 leading-tight text-left pl-1.5 pr-1">
                 {prod.name}
               </div>
 
-              {/* Barcode Vector SVG */}
+              {/* Barcode Vector SVG (Reduced Left Margin) */}
               <div
-                className="w-full flex items-center justify-start my-0.5 overflow-hidden max-h-[14mm] pl-0"
+                className="w-full flex items-center justify-start my-0.5 overflow-hidden max-h-[14mm] pl-1.5"
                 dangerouslySetInnerHTML={{
                   __html: generateBarcodeSvg({
                     type: symbology,
@@ -487,15 +462,15 @@ export default function BarcodePage() {
                 }}
               />
 
-              {/* Footer: Barcode text + Price */}
-              <div className="w-full flex items-center justify-between text-[7px] border-t border-black/20 pt-0.5 leading-none pl-0">
+              {/* Footer: Barcode text + Price (Balanced Baseline) */}
+              <div className="w-full flex items-baseline justify-between text-[7px] border-t border-black/20 pt-0.5 leading-none px-0.5">
                 {showBarcodeText && (
-                  <span className="font-mono font-semibold text-black truncate max-w-[45%] text-left">
-                    {prod.uniqueBarcode || prod.customValue || prod.barcode}
+                  <span className="font-mono font-semibold text-black truncate max-w-[48%] text-left">
+                    {prod.customValue || prod.uniqueBarcode || prod.barcode}
                   </span>
                 )}
                 {showPrice && (
-                  <span className="font-extrabold text-black ml-auto text-right whitespace-nowrap min-w-[50%]">
+                  <span className="font-extrabold text-black ml-auto text-right whitespace-nowrap">
                     ₹{Number(prod.sellingPrice ?? prod.price ?? 0).toLocaleString('en-IN')}
                   </span>
                 )}

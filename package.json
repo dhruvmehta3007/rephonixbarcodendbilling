@@ -1,7 +1,8 @@
 {
   "name": "thecellpointbarcode",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "main": "electron/main.cjs",
   "type": "module",
   "scripts": {
     "start": "tsx server/index.ts",
@@ -10,11 +11,17 @@
     "dev": "concurrently -n \"API,WEB\" -c \"cyan,magenta\" \"tsx watch server/index.ts\" \"vite\"",
     "server": "tsx watch server/index.ts",
     "client": "vite",
+    "build:server": "esbuild server/index.ts --bundle --platform=node --target=node20 --format=esm --outfile=dist-server/index.mjs --packages=external",
+    "build:client": "vite build",
     "build": "prisma db push && npm run seed && vite build",
     "seed": "tsx server/seed.ts",
-    "test": "vitest run",
+    "db:clean": "tsx server/reset-clean-db.ts",
+    "seed:sample": "tsx server/seed-sample.ts",
+    "test": "vitest run --passWithNoTests",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "electron:dev": "npm run build:server && electron electron/main.cjs",
+    "dist:exe": "npm run build:server && vite build && electron-builder --win"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
@@ -53,11 +60,47 @@
     "@vitejs/plugin-react": "^6.1.2",
     "autoprefixer": "^10.6.2",
     "concurrently": "^10.0.6",
+    "electron": "^45.3.2",
+    "electron-builder": "^26.18.0",
     "oxlint": "^1.89.0",
     "postcss": "^8.5.32",
     "supertest": "^7.3.1",
     "tailwindcss": "^4.3.3",
     "vite": "^8.3.5",
     "vitest": "^4.1.12"
+  },
+  "build": {
+    "appId": "com.thecellpoint.pos",
+    "productName": "THE CELL POINT",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-server/**/*",
+      "electron/**/*",
+      "prisma/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "**/node_modules/@prisma/**",
+      "**/node_modules/prisma/**",
+      "**/prisma/**"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "THE CELL POINT"
+    }
   }
 }

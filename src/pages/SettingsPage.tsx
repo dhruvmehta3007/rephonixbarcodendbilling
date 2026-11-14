@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, Printer, Store, Shield, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Settings, Save, Printer, Store, Shield, CheckCircle2, AlertCircle, AlertTriangle, RotateCcw, Trash2 } from 'lucide-react';
 import { api } from '../services/api';
 
 export default function SettingsPage() {
@@ -17,6 +17,9 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [resetModalOpen, setResetModalOpen] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -47,6 +50,22 @@ export default function SettingsPage() {
     }
   };
 
+  const handleResetDatabase = async () => {
+    setIsResetting(true);
+    setErrorMsg(null);
+    try {
+      await api.settings.resetDatabase();
+      setResetModalOpen(false);
+      setResetSuccess(true);
+      await loadSettings();
+      setTimeout(() => setResetSuccess(false), 5000);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to reset database');
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   return (
     <div className="flex-1 p-8 overflow-y-auto space-y-6">
       <div>
@@ -67,6 +86,13 @@ export default function SettingsPage() {
               <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
                 <CheckCircle2 size={15} />
                 <span>Shop settings successfully saved!</span>
+              </div>
+            )}
+
+            {resetSuccess && (
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 text-xs flex items-center gap-2 font-medium">
+                <CheckCircle2 size={15} className="text-emerald-600" />
+                <span>Database successfully purged and reset to pure clean state!</span>
               </div>
             )}
 
@@ -179,6 +205,29 @@ export default function SettingsPage() {
               </button>
             </div>
           </form>
+
+          {/* Database Reset & Fallback Section */}
+          <div className="mt-6 p-6 rounded-2xl bg-white border border-rose-200/80 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-bold text-rose-700 flex items-center gap-2">
+                  <RotateCcw size={16} className="text-rose-600" />
+                  <span>Database Clean State & Fallback</span>
+                </h3>
+                <p className="text-xs text-[#86868b] mt-1 max-w-xl">
+                  Wipe all inventory, phone models, tracked IMEIs, and transaction history. Reverts the system back to a pure, clean database while retaining store configuration and login credentials.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setResetModalOpen(true)}
+                className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-semibold flex items-center gap-2 transition-colors shrink-0"
+              >
+                <Trash2 size={14} className="text-rose-600" />
+                <span>Reset to Pure Clean Database</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Right Col: Printer Integration Architecture Documentation */}
@@ -206,6 +255,65 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      {resetModalOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 border border-black/[0.08] shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-rose-600">
+              <div className="p-3 bg-rose-50 rounded-xl">
+                <AlertTriangle size={24} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-[#1d1d1f]">Reset Database to Clean State?</h3>
+                <p className="text-xs text-[#86868b]">This action cannot be undone.</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-rose-50/60 border border-rose-200/60 rounded-xl text-xs text-rose-800 space-y-1.5">
+              <p className="font-semibold">The following will be permanently wiped:</p>
+              <ul className="list-disc list-inside space-y-0.5 text-[11px] text-rose-700">
+                <li>All products and smartphone models</li>
+                <li>All tracked device units and serial/IMEI records</li>
+                <li>All sales bills, order histories, and refunds</li>
+                <li>All inventory movement logs</li>
+              </ul>
+              <p className="pt-1 text-[11px] text-[#86868b]">
+                Store profile settings, admin/cashier credentials, and default category will be safely preserved.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                disabled={isResetting}
+                onClick={() => setResetModalOpen(false)}
+                className="px-4 py-2 border border-black/[0.08] text-[#1d1d1f] hover:bg-[#f5f5f7] rounded-xl text-xs font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isResetting}
+                onClick={handleResetDatabase}
+                className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-2 shadow-sm"
+              >
+                {isResetting ? (
+                  <>
+                    <RotateCcw size={14} className="animate-spin" />
+                    <span>Resetting Database...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={14} />
+                    <span>Yes, Wipe & Clean Database</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db';
 import { authenticate, requireAdmin, AuthenticatedRequest, createAuditLog } from '../middleware/auth';
+import { resetToCleanDatabase } from '../reset-clean-db';
 
 const router = Router();
 
@@ -58,6 +59,31 @@ router.put('/', authenticate, requireAdmin, async (req: AuthenticatedRequest, re
     return res.json(updated);
   } catch (error: any) {
     return res.status(500).json({ error: error.message || 'Failed to update settings' });
+  }
+});
+
+// POST /api/settings/reset-database (Admin-only fallback/clean database option)
+router.post('/reset-database', authenticate, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const result = await resetToCleanDatabase();
+
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'SETTINGS_UPDATE',
+      entity: 'Database',
+      entityId: 'clean-reset',
+      details: 'Administrator reset the database to pure clean state',
+      ipAddress: req.ip,
+    });
+
+    return res.json({
+      success: true,
+      message: 'Database successfully purged and reset to pristine clean state.',
+      ...result,
+    });
+  } catch (error: any) {
+    console.error('Reset database failed:', error);
+    return res.status(500).json({ error: error.message || 'Failed to reset database' });
   }
 });
 

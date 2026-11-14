@@ -10,15 +10,21 @@ const router = Router();
 const productSchema = z.object({
   name: z.string().min(2, 'Product name must be at least 2 characters'),
   barcode: z.string().optional().nullable(),
+  sku: z.string().optional().nullable(),
+  imeis: z.array(z.string()).optional(),
+  units: z.array(z.object({
+    imei: z.string(),
+    customValue: z.string().optional().nullable(),
+  })).optional(),
   description: z.string().optional().nullable(),
   categoryId: z.string().optional().nullable(),
   supplierId: z.string().optional().nullable(),
   purchasePrice: z.number().min(0, 'Purchase price cannot be negative'),
   sellingPrice: z.number().min(0, 'Selling price cannot be negative'),
   customValue: z.string().optional().nullable(),
-  taxRate: z.number().min(0).max(100, 'Tax rate must be between 0 and 100'),
-  currentStock: z.number().int().min(0, 'Initial stock cannot be negative').default(0),
-  minStockThreshold: z.number().int().min(0).default(5),
+  taxRate: z.number().min(0).max(100, 'Tax rate must be between 0 and 100').default(18),
+  currentStock: z.number().int().min(0).default(1),
+  minStockThreshold: z.number().int().min(0).default(1),
   unit: z.string().default('pcs'),
 });
 
@@ -46,6 +52,11 @@ router.get('/', authenticate, async (req: AuthenticatedRequest, res: Response) =
       include: {
         category: { select: { id: true, name: true } },
         supplier: { select: { id: true, name: true } },
+        devices: {
+          where: { status: 'IN_STOCK' },
+          select: { id: true, imei1: true, barcode: true, customValue: true, status: true },
+          orderBy: { createdAt: 'asc' },
+        },
       },
       orderBy: {
         [sortBy as string]: sortOrder === 'asc' ? 'asc' : 'desc',
@@ -104,7 +115,36 @@ router.get('/:id', authenticate, async (req: AuthenticatedRequest, res: Response
   }
 });
 
-// POST /api/products
+function generateSmartLabelCode(name: string): string {
+  if (!name || !name.trim()) return '';
+  const clean = name.trim();
+  const storageMatch = clean.match(/(\d+\s*(?:GB|TB))/i);
+  const storage = storageMatch ? storageMatch[1].replace(/\s+/g, '').toUpperCase() : '';
+  const withoutStorage = clean.replace(/(\d+\s*(?:GB|TB))/i, '').trim();
+  const words = withoutStorage.split(/\s+/).filter(Boolean);
+  if (words.length === 1) {
+    return (words[0].slice(0, 6).toUpperCase() + (storage ? '-' + storage : '-01'));
+  }
+  const first = words[0].toUpperCase();
+  let prefix = '';
+  if (first === 'IPHONE' || first === 'APPLE') {
+    prefix = 'A' + words.slice(1).filter((w) => /^[a-zA-Z0-9]+$/.test(w)).map((w) => (w.length <= 3 ? w.toUpperCase() : w[0].toUpperCase())).join('').slice(0, 5);
+  } else if (first === 'SAMSUNG') {
+    prefix = 'SS' + words.slice(1).filter((w) => /^[a-zA-Z0-9]+$/.test(w)).map((w) => (w.length <= 3 ? w.toUpperCase() : w[0].toUpperCase())).join('').slice(0, 5);
+  } else if (first === 'VIVO') {
+    prefix = 'VX' + words.slice(1).filter((w) => /^[a-zA-Z0-9]+$/.test(w)).map((w) => (w.length <= 4 ? w.toUpperCase() : w[0].toUpperCase())).join('').slice(0, 5);
+  } else if (first === 'ONEPLUS') {
+    prefix = 'OP' + words.slice(1).filter((w) => /^[a-zA-Z0-9]+$/.test(w)).map((w) => (w.length <= 3 ? w.toUpperCase() : w[0].toUpperCase())).join('').slice(0, 5);
+  } else {
+    prefix = words.slice(0, 3).map((w) => (w.length <= 3 ? w.toUpperCase() : w[0].toUpperCase())).join('').slice(0, 6);
+  }
+  const lastWord = words[words.length - 1];
+  const color = words.length > 2 && !/^\d+$/.test(lastWord) ? lastWord.slice(0, 3).toUpperCase() : '';
+  const parts = [prefix, storage, color].filter(Boolean);
+  return parts.join('-');
+}
+
+// POST /api/products - Mobile Device Intake (1 IMEI = 1 Piece)
 router.post('/', authenticate, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const parse = productSchema.safeParse(req.body);
@@ -114,58 +154,178 @@ router.post('/', authenticate, requireAdmin, async (req: AuthenticatedRequest, r
 
     const data = parse.data;
 
-    // Auto-generate unique barcode if empty (Code128 format using guaranteed unique identifier)
-    let barcode = data.barcode?.trim();
-    if (!barcode) {
-      barcode = await generateUniqueBarcode('CPB', 'product');
-    } else {
-      // Check duplicate barcode
-      const existingBarcode = await prisma.product.findUnique({ where: { barcode } });
-      if (existingBarcode) {
-        return res.status(400).json({ error: `Product with Barcode "${barcode}" already exists.` });
+    // Collect all valid unique unit entries (IMEI + owner's secret cost code)
+    let unitEntries: { imei: string; customValue: string | null }[] = [];
+    if (data.units && data.units.length > 0) {
+      unitEntries = data.units
+        .map((u) => ({ imei: String(u.imei || '').trim(), customValue: u.customValue?.trim() || null }))
+        .filter((u) => Boolean(u.imei));
+    } else if (data.imeis && data.imeis.length > 0) {
+      unitEntries = data.imeis
+        .map((im) => ({ imei: String(im || '').trim(), customValue: data.customValue?.trim() || null }))
+        .filter((u) => Boolean(u.imei));
+    }
+
+    const legacySku = ((req.body as any).sku || (data as any).sku)?.trim();
+    if (unitEntries.length === 0 && data.barcode?.trim()) {
+      unitEntries = [{ imei: data.barcode.trim(), customValue: data.customValue?.trim() || null }];
+    } else if (unitEntries.length === 0 && legacySku) {
+      unitEntries = [{ imei: legacySku, customValue: data.customValue?.trim() || null }];
+    }
+
+    if (unitEntries.length === 0) {
+      return res.status(400).json({ error: 'Please enter or scan at least one 15-digit IMEI number.' });
+    }
+
+    const cleanImeis = unitEntries.map((u) => u.imei);
+
+    // Check duplicate SKU if provided
+    if (legacySku) {
+      const existingSkuDev = await prisma.deviceUnit.findFirst({
+        where: { OR: [{ barcode: legacySku }, { imei1: legacySku }, { serialNumber: legacySku }] },
+      });
+      const existingSkuProd = await prisma.product.findUnique({
+        where: { barcode: legacySku },
+      });
+      if (existingSkuDev || existingSkuProd) {
+        return res.status(400).json({ error: `Product with SKU "${legacySku}" already exists in store.` });
       }
     }
 
-    // Create product and opening stock movement atomically
-    const product = await prisma.$transaction(async (tx) => {
-      const created = await tx.product.create({
-        data: {
-          ...data,
-          categoryId: data.categoryId && data.categoryId.trim() !== '' ? data.categoryId : null,
-          supplierId: data.supplierId && data.supplierId.trim() !== '' ? data.supplierId : null,
-          barcode,
-        },
-      });
+    // Check internal duplicates in this intake batch
+    const uniqueBatch = new Set(cleanImeis);
+    if (uniqueBatch.size !== cleanImeis.length) {
+      return res.status(400).json({ error: 'Duplicate IMEI numbers detected in the input list.' });
+    }
 
-      if (data.currentStock > 0) {
+    // Check if any IMEI is already registered in store
+    const existingDev = await prisma.deviceUnit.findFirst({
+      where: {
+        OR: cleanImeis.flatMap((im) => [{ barcode: im }, { imei1: im }]),
+      },
+      include: { product: true },
+    });
+
+    if (existingDev) {
+      return res.status(400).json({
+        error: `Device with IMEI "${existingDev.barcode || existingDev.imei1}" already exists in store.`,
+      });
+    }
+
+    // Default category to 'Smartphones' if not provided
+    let targetCatId = data.categoryId && data.categoryId.trim() !== '' ? data.categoryId : null;
+    if (!targetCatId) {
+      const smartCat = await prisma.category.findFirst({ where: { name: 'Smartphones' } });
+      if (smartCat) targetCatId = smartCat.id;
+    }
+
+    const supplierId = data.supplierId && data.supplierId.trim() !== '' ? data.supplierId : null;
+    const totalNewUnits = Math.max(cleanImeis.length, data.currentStock || 0);
+
+    // Check if a catalog product with this exact name already exists
+    const existingProd = await prisma.product.findFirst({
+      where: { name: data.name.trim(), isArchived: false },
+    });
+
+    const finalCustomValue = unitEntries.find((u) => u.customValue)?.customValue || data.customValue?.trim() || null;
+
+    const result = await prisma.$transaction(async (tx) => {
+      let targetProduct;
+
+      if (existingProd) {
+        // Increment stock and update pricing/custom value
+        targetProduct = await tx.product.update({
+          where: { id: existingProd.id },
+          data: {
+            currentStock: existingProd.currentStock + totalNewUnits,
+            sellingPrice: data.sellingPrice,
+            purchasePrice: data.purchasePrice,
+            customValue: finalCustomValue || existingProd.customValue,
+            taxRate: data.taxRate,
+            categoryId: targetCatId || existingProd.categoryId,
+            supplierId: supplierId || existingProd.supplierId,
+          },
+        });
+
         await tx.inventoryMovement.create({
           data: {
-            productId: created.id,
+            productId: targetProduct.id,
+            type: 'PURCHASE',
+            quantityChange: totalNewUnits,
+            stockBefore: existingProd.currentStock,
+            stockAfter: existingProd.currentStock + totalNewUnits,
+            reason: `Intake of ${totalNewUnits} mobile unit(s)`,
+            userId: req.user?.id,
+          },
+        });
+      } else {
+        // Create new catalog product
+        targetProduct = await tx.product.create({
+          data: {
+            name: data.name.trim(),
+            barcode: cleanImeis[0],
+            description: data.description,
+            categoryId: targetCatId,
+            supplierId: supplierId,
+            purchasePrice: data.purchasePrice,
+            sellingPrice: data.sellingPrice,
+            customValue: finalCustomValue,
+            taxRate: data.taxRate,
+            currentStock: totalNewUnits,
+            minStockThreshold: data.minStockThreshold || 1,
+            unit: 'pcs',
+          },
+        });
+
+        await tx.inventoryMovement.create({
+          data: {
+            productId: targetProduct.id,
             type: 'OPENING',
-            quantityChange: data.currentStock,
+            quantityChange: totalNewUnits,
             stockBefore: 0,
-            stockAfter: data.currentStock,
-            reason: 'Opening stock on product creation',
+            stockAfter: totalNewUnits,
+            reason: `Opening stock: ${totalNewUnits} mobile unit(s)`,
             userId: req.user?.id,
           },
         });
       }
 
-      return created;
+      // Create a unique DeviceUnit for each individual IMEI with its own customValue code
+      const createdDevices = [];
+      for (const u of unitEntries) {
+        const dev = await tx.deviceUnit.create({
+          data: {
+            productId: targetProduct.id,
+            barcode: u.imei,
+            imei1: u.imei,
+            serialNumber: legacySku || null,
+            purchasePrice: data.purchasePrice || 0,
+            customValue: u.customValue || finalCustomValue,
+            condition: 'NEW',
+            status: 'IN_STOCK',
+            supplierId: supplierId,
+            purchaseDate: new Date(),
+            notes: 'Mobile intake via Product Catalog',
+          },
+        });
+        createdDevices.push(dev);
+      }
+
+      return { product: targetProduct, devices: createdDevices };
     });
 
     await createAuditLog({
       userId: req.user?.id,
       action: 'PRODUCT_CREATE',
       entity: 'Product',
-      entityId: product.id,
-      details: `Created product "${product.name}" (Barcode: ${product.barcode}, Stock: ${product.currentStock})`,
+      entityId: result.product.id,
+      details: `Intake of ${totalNewUnits} device(s) for "${result.product.name}" (IMEIs: ${cleanImeis.join(', ')})`,
       ipAddress: req.ip,
     });
 
-    return res.status(201).json(product);
+    return res.status(201).json({ ...result.product, sku: legacySku || result.product.barcode });
   } catch (error: any) {
-    return res.status(500).json({ error: error.message || 'Failed to create product' });
+    return res.status(500).json({ error: error.message || 'Failed to intake mobile device' });
   }
 });
 
@@ -231,6 +391,39 @@ router.put('/:id', authenticate, requireAdmin, async (req: AuthenticatedRequest,
         });
       }
 
+      // Synchronize associated DeviceUnit
+      const newBarcode = data.barcode || existing.barcode;
+      const existingUnits = await tx.deviceUnit.findMany({ where: { productId: id } });
+      if (existingUnits.length > 0) {
+        for (const u of existingUnits) {
+          await tx.deviceUnit.update({
+            where: { id: u.id },
+            data: {
+              barcode: newBarcode,
+              imei1: newBarcode,
+              purchasePrice: data.purchasePrice,
+              customValue: data.customValue !== undefined ? data.customValue : existing.customValue,
+              supplierId: data.supplierId && data.supplierId.trim() !== '' ? data.supplierId : null,
+            },
+          });
+        }
+      } else {
+        await tx.deviceUnit.create({
+          data: {
+            productId: id,
+            barcode: newBarcode,
+            imei1: newBarcode,
+            purchasePrice: data.purchasePrice || 0,
+            customValue: data.customValue !== undefined ? data.customValue : existing.customValue,
+            condition: 'NEW',
+            status: 'IN_STOCK',
+            supplierId: data.supplierId && data.supplierId.trim() !== '' ? data.supplierId : null,
+            purchaseDate: new Date(),
+            notes: 'Auto-registered unit on product update',
+          },
+        });
+      }
+
       return resProduct;
     });
 
@@ -259,9 +452,19 @@ router.delete('/:id', authenticate, requireAdmin, async (req: AuthenticatedReque
     }
 
     // Soft delete / archive product so historical invoices and records remain intact
-    await prisma.product.update({
-      where: { id },
-      data: { isArchived: true },
+    await prisma.$transaction(async (tx) => {
+      await tx.product.update({
+        where: { id },
+        data: { isArchived: true },
+      });
+
+      // Delete non-sold device units associated with this archived product
+      await tx.deviceUnit.deleteMany({
+        where: {
+          productId: id,
+          status: { not: 'SOLD' },
+        },
+      });
     });
 
     await createAuditLog({
@@ -340,6 +543,26 @@ router.post('/import-csv', authenticate, requireAdmin, async (req: Authenticated
               stockAfter: stock,
               reason: 'Bulk CSV Import Opening Stock',
               userId: req.user?.id,
+            },
+          });
+        }
+
+        // Auto-register DeviceUnit for imported product
+        const existingDev = await tx.deviceUnit.findFirst({
+          where: { OR: [{ barcode: prod.barcode }, { imei1: prod.barcode }] },
+        });
+        if (!existingDev) {
+          await tx.deviceUnit.create({
+            data: {
+              productId: prod.id,
+              barcode: prod.barcode,
+              imei1: prod.barcode,
+              purchasePrice: prod.purchasePrice || 0,
+              customValue: prod.customValue || null,
+              condition: 'NEW',
+              status: 'IN_STOCK',
+              purchaseDate: new Date(),
+              notes: 'Bulk CSV Import Unit',
             },
           });
         }

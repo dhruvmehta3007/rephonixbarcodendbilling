@@ -8,6 +8,9 @@ const router = Router();
 // Validation for checkout
 const checkoutItemSchema = z.object({
   productId: z.string().min(1, 'Product ID is required'),
+  deviceUnitId: z.string().optional().nullable(),
+  deviceBarcode: z.string().optional().nullable(),
+  imei: z.string().optional().nullable(),
   quantity: z.number().int().min(1, 'Quantity must be at least 1'),
   discount: z.number().min(0).default(0), // line item discount in currency
 });
@@ -51,6 +54,7 @@ router.get('/lookup', authenticate, async (req: AuthenticatedRequest, res: Respo
       return res.json([
         {
           ...device.product,
+          sku: device.serialNumber || device.product.barcode,
           deviceUnitId: device.id,
           deviceBarcode: device.barcode,
           deviceImei1: device.imei1,
@@ -66,7 +70,10 @@ router.get('/lookup', authenticate, async (req: AuthenticatedRequest, res: Respo
         barcode: query,
         isArchived: false,
       },
-      include: { category: { select: { name: true } } },
+      include: {
+        category: { select: { name: true } },
+        devices: { take: 1, select: { serialNumber: true } },
+      },
       take: 10,
     });
 
@@ -80,12 +87,15 @@ router.get('/lookup', authenticate, async (req: AuthenticatedRequest, res: Respo
             { name: { contains: query } },
           ],
         },
-        include: { category: { select: { name: true } } },
+        include: {
+          category: { select: { name: true } },
+          devices: { take: 1, select: { serialNumber: true } },
+        },
         take: 15,
       });
     }
 
-    return res.json(products);
+    return res.json(products.map((p) => ({ ...p, sku: p.devices?.[0]?.serialNumber || p.barcode })));
   } catch (error: any) {
     return res.status(500).json({ error: error.message || 'Lookup failed' });
   }
@@ -154,7 +164,7 @@ router.post('/checkout', authenticate, async (req: AuthenticatedRequest, res: Re
       return {
         productId: prod.id,
         productName: prod.name,
-        barcode: prod.barcode,
+        barcode: cartItem.imei || cartItem.deviceBarcode || prod.barcode,
         unitPrice,
         unitCost,
         quantity,
@@ -242,6 +252,35 @@ router.post('/checkout', authenticate, async (req: AuthenticatedRequest, res: Re
             userId: req.user?.id,
           },
         });
+
+        // Mark corresponding DeviceUnit(s) as SOLD
+        const matchedCartItem = items.find((c) => c.productId === item.productId);
+        if (matchedCartItem?.deviceUnitId) {
+          await tx.deviceUnit.update({
+            where: { id: matchedCartItem.deviceUnitId },
+            data: {
+              status: 'SOLD',
+              soldPrice: item.unitPrice,
+              soldAt: new Date(),
+            },
+          });
+        } else {
+          const availableUnits = await tx.deviceUnit.findMany({
+            where: { productId: item.productId, status: 'IN_STOCK' },
+            take: item.quantity,
+            orderBy: { purchaseDate: 'asc' },
+          });
+          for (const u of availableUnits) {
+            await tx.deviceUnit.update({
+              where: { id: u.id },
+              data: {
+                status: 'SOLD',
+                soldPrice: item.unitPrice,
+                soldAt: new Date(),
+              },
+            });
+          }
+        }
       }
 
       // Update customer total spend

@@ -21,6 +21,9 @@ import confetti from 'canvas-confetti';
 
 interface CartItem {
   productId: string;
+  deviceUnitId?: string;
+  deviceBarcode?: string;
+  imei?: string;
   name: string;
   barcode: string;
   price: number;
@@ -111,10 +114,13 @@ export default function PosPage() {
     try {
       const results = await api.pos.lookup(query);
       if (results && results.length > 0) {
-        addToCart(results[0]);
+        const matched = results[0];
+        const imeiFound = matched.deviceImei1 || matched.deviceBarcode || (matched.barcode === query ? query : undefined);
+        addToCart(matched, imeiFound, matched.deviceUnitId);
         setBarcodeInput('');
+        setErrorMsg(null);
       } else {
-        setErrorMsg(`No product found matching barcode "${query}"`);
+        setErrorMsg(`No phone model found matching scanned IMEI "${query}"`);
         setTimeout(() => setErrorMsg(null), 3000);
       }
     } catch (err: any) {
@@ -123,16 +129,27 @@ export default function PosPage() {
   };
 
   // Add Product to Cart or increment quantity if already present
-  const addToCart = (product: any) => {
+  const addToCart = (product: any, scannedImei?: string, deviceUnitId?: string) => {
     if (product.currentStock <= 0) {
       setErrorMsg(`"${product.name}" is currently out of stock!`);
       setTimeout(() => setErrorMsg(null), 3000);
       return;
     }
 
+    const resolvedImei = scannedImei || product.deviceImei1 || product.deviceBarcode;
+    const resolvedUnitId = deviceUnitId || product.deviceUnitId;
+
     setCart((prev) => {
-      const existingIdx = prev.findIndex((item) => item.productId === product.id);
-      if (existingIdx >= 0) {
+      // Check if this exact scanned device unit is already in the cart
+      if (resolvedUnitId && prev.some((item) => item.deviceUnitId === resolvedUnitId)) {
+        setErrorMsg(`Device with IMEI "${resolvedImei}" is already added to this bill.`);
+        setTimeout(() => setErrorMsg(null), 3000);
+        return prev;
+      }
+
+      // If clicked from grid or general product without specific IMEI
+      const existingIdx = prev.findIndex((item) => item.productId === product.id && !item.deviceUnitId && !resolvedUnitId);
+      if (existingIdx >= 0 && !resolvedUnitId) {
         const item = prev[existingIdx];
         if (item.quantity + 1 > product.currentStock) {
           setErrorMsg(`Cannot add more than available stock (${product.currentStock} units).`);
@@ -147,8 +164,11 @@ export default function PosPage() {
           ...prev,
           {
             productId: product.id,
+            deviceUnitId: resolvedUnitId,
+            deviceBarcode: resolvedImei,
+            imei: resolvedImei,
             name: product.name,
-            barcode: product.barcode,
+            barcode: resolvedImei || product.barcode,
             price: product.sellingPrice,
             taxRate: product.taxRate || 0,
             quantity: 1,
@@ -216,6 +236,9 @@ export default function PosPage() {
       const payload = {
         items: cart.map((i) => ({
           productId: i.productId,
+          deviceUnitId: i.deviceUnitId,
+          deviceBarcode: i.deviceBarcode || i.barcode,
+          imei: i.imei || i.barcode,
           quantity: i.quantity,
           discount: i.discount,
         })),
@@ -328,12 +351,9 @@ export default function PosPage() {
                   }`}
                 >
                   <div>
-                    {/* Top Row: Barcode Pill & Stock Status */}
-                    <div className="flex items-center justify-between gap-1 mb-2">
-                      <span className="text-[10px] font-mono font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md truncate max-w-[60%]">
-                        {p.barcode}
-                      </span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                    {/* Top Row: Available Stock Pieces Only (No IMEI) */}
+                    <div className="flex items-center justify-end mb-2">
+                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
                         !inStock
                           ? 'bg-rose-50 text-rose-700 border-rose-200'
                           : isLowStock
@@ -443,6 +463,12 @@ export default function PosPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="text-xs font-bold text-slate-900 leading-tight">{item.name}</div>
+                      {item.imei && (
+                        <div className="inline-flex items-center gap-1 font-mono text-[10px] font-bold text-blue-900 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 mt-0.5">
+                          <span className="text-[9px] text-blue-600 font-sans font-semibold">IMEI:</span>
+                          <span>{item.imei}</span>
+                        </div>
+                      )}
                       <div className="text-[10px] text-slate-500 font-mono mt-0.5">
                         ₹{item.price.toLocaleString('en-IN')} × {item.quantity} | Tax: {item.taxRate}%
                       </div>
@@ -612,7 +638,7 @@ export default function PosPage() {
                   <div className="text-2xl font-black text-blue-700 font-mono">
                     ₹{totalAmount.toLocaleString('en-IN')}
                   </div>
-                  <div className="text-[11px] font-mono text-slate-500">UPI ID: cellpoint.pay@icici</div>
+                  <div className="text-[11px] font-mono text-slate-500">UPI ID: thecellpoint.pay@icici</div>
                 </div>
               )}
 
@@ -722,8 +748,13 @@ export default function PosPage() {
                 {completedSale.items?.map((item: any) => (
                   <div key={item.id} className="space-y-0.5 text-[10px]">
                     <div className="font-semibold text-gray-900">{item.productName}</div>
+                    {item.barcode && (
+                      <div className="text-[9px] font-mono text-slate-700 font-semibold">
+                        IMEI: {item.barcode}
+                      </div>
+                    )}
                     <div className="flex justify-between text-gray-600">
-                      <span className="font-mono">{item.barcode}</span>
+                      <span className="font-mono">₹{item.unitPrice?.toLocaleString('en-IN') || ''}</span>
                       <span className="w-10 text-center font-mono">× {item.quantity}</span>
                       <span className="w-14 text-right font-mono font-bold text-gray-900">
                         ₹{item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}

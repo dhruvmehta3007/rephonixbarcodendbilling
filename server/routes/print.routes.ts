@@ -27,6 +27,7 @@ router.post('/direct-tspl', async (req: Request, res: Response) => {
       items.map((item) => ({
         name: item.name,
         barcode: item.barcode,
+        customValue: item.customValue || item.labelValue,
         price: item.price ?? item.sellingPrice,
         quantity: item.quantity || 1,
       })),

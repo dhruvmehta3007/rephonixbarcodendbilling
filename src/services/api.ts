@@ -123,6 +123,7 @@ export const api = {
   settings: {
     get: () => request('/settings'),
     update: (data: any) => request('/settings', { method: 'PUT', body: JSON.stringify(data) }),
+    resetDatabase: () => request('/settings/reset-database', { method: 'POST' }),
   },
 
   // Users & RBAC

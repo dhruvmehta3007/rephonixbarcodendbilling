@@ -165,11 +165,12 @@ export default function ScannerPage({ onNavigate }: ScannerPageProps) {
     const name = isDevice ? (itemData.product?.name || 'DEVICE') : itemData.name;
     const barcode = itemData.scannedBarcode || (isDevice ? (itemData.barcode || itemData.imei1) : itemData.barcode);
     const price = isDevice ? (itemData.product?.sellingPrice || itemData.purchasePrice || 0) : (itemData.sellingPrice || 0);
+    const customValue = itemData.customValue || itemData.product?.customValue;
 
     setDirectPrinting(true);
     setPrintSuccessMsg(null);
     try {
-      const items = [{ name, barcode, price, quantity: 1 }];
+      const items = [{ name, barcode, customValue, price, quantity: 1 }];
       const tsplCode = buildCellPointTSPLJob(items, {
         gapMM: 3,
         labelSize: '50x25',
@@ -201,6 +202,7 @@ export default function ScannerPage({ onNavigate }: ScannerPageProps) {
     const name = isDevice ? (itemData.product?.name || 'DEVICE') : itemData.name;
     const barcode = itemData.scannedBarcode || (isDevice ? (itemData.barcode || itemData.imei1) : itemData.barcode);
     const price = isDevice ? (itemData.product?.sellingPrice || itemData.purchasePrice || 0) : (itemData.sellingPrice || 0);
+    const customValue = itemData.customValue || itemData.product?.customValue;
 
     try {
       const res = await api.print.directTSPL({
@@ -209,6 +211,7 @@ export default function ScannerPage({ onNavigate }: ScannerPageProps) {
         items: [{
           name,
           barcode,
+          customValue,
           price,
           quantity: 1,
         }],
@@ -362,12 +365,6 @@ export default function ScannerPage({ onNavigate }: ScannerPageProps) {
                     <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase bg-blue-100 text-blue-800">
                       {isDevice ? 'TRACKED DEVICE UNIT' : 'CATALOG PRODUCT'}
                     </span>
-                    {model.isSerializedPiece && (
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black tracking-wide uppercase bg-emerald-600 text-white shadow-sm flex items-center gap-1">
-                        <CheckCircle2 size={12} />
-                        PIECE #{model.pieceNumber}
-                      </span>
-                    )}
                     {isDevice && (
                       <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase ${
                         model.status === 'IN_STOCK'
@@ -422,38 +419,22 @@ export default function ScannerPage({ onNavigate }: ScannerPageProps) {
                 <h3 className="text-xs font-bold uppercase tracking-wider text-[#86868b] mb-2.5 flex items-center gap-1.5">
                   <Tag size={13} className="text-blue-500" /> Device Identifiers & Hardware Details
                 </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className={`grid grid-cols-2 ${isDevice ? 'sm:grid-cols-3' : 'sm:grid-cols-4'} gap-3`}>
                   <div className="bg-[#f5f5f7] p-3 rounded-xl border border-black/[0.04]">
                     <div className="text-[10px] text-[#86868b] uppercase font-bold">
-                      {model.isSerializedPiece ? 'Scanned Unit Tag' : 'Barcode Tag'}
+                      {isDevice ? 'Device IMEI' : 'Barcode Tag'}
                     </div>
                     <div className="text-xs font-mono font-bold text-blue-800 mt-0.5 truncate">
-                      {model.scannedBarcode || model.barcode || 'N/A'}
+                      {model.imei1 || model.barcode || model.scannedBarcode || 'N/A'}
                     </div>
                   </div>
-
-                  {model.isSerializedPiece && (
-                    <div className="bg-[#f5f5f7] p-3 rounded-xl border border-black/[0.04]">
-                      <div className="text-[10px] text-[#86868b] uppercase font-bold">Master Base SKU</div>
-                      <div className="text-xs font-mono font-bold text-[#1d1d1f] mt-0.5 truncate">
-                        {model.baseBarcode}
-                      </div>
-                    </div>
-                  )}
 
                   {isDevice && (
                     <>
                       <div className="bg-[#f5f5f7] p-3 rounded-xl border border-black/[0.04]">
-                        <div className="text-[10px] text-[#86868b] uppercase font-bold">IMEI 1</div>
-                        <div className="text-xs font-mono font-bold text-blue-700 mt-0.5 truncate">
-                          {model.imei1 || 'N/A'}
-                        </div>
-                      </div>
-
-                      <div className="bg-[#f5f5f7] p-3 rounded-xl border border-black/[0.04]">
-                        <div className="text-[10px] text-[#86868b] uppercase font-bold">IMEI 2</div>
-                        <div className="text-xs font-mono font-bold text-[#1d1d1f] mt-0.5 truncate">
-                          {model.imei2 || 'N/A'}
+                        <div className="text-[10px] text-[#86868b] uppercase font-bold">Secret Buying Code</div>
+                        <div className="text-xs font-mono font-bold text-emerald-700 mt-0.5 truncate">
+                          {model.customValue || model.product?.customValue || 'N/A'}
                         </div>
                       </div>
 
@@ -469,9 +450,9 @@ export default function ScannerPage({ onNavigate }: ScannerPageProps) {
                   {!isDevice && (
                     <>
                       <div className="bg-[#f5f5f7] p-3 rounded-xl border border-black/[0.04]">
-                        <div className="text-[10px] text-[#86868b] uppercase font-bold">SKU Code</div>
+                        <div className="text-[10px] text-[#86868b] uppercase font-bold">IMEI Number</div>
                         <div className="text-xs font-mono font-bold text-blue-700 mt-0.5 truncate">
-                          {model.sku || 'N/A'}
+                          {model.barcode || 'N/A'}
                         </div>
                       </div>
                       <div className="bg-[#f5f5f7] p-3 rounded-xl border border-black/[0.04]">
@@ -648,8 +629,12 @@ export default function ScannerPage({ onNavigate }: ScannerPageProps) {
                     <div className="text-xs font-bold text-[#1d1d1f] truncate group-hover:text-blue-600 transition-colors">
                       {h.type === 'DEVICE_UNIT' ? (h.data.product?.name || 'Device') : h.data.name}
                     </div>
-                    <div className="text-[10px] text-[#86868b] font-mono mt-0.5">
-                      {h.code} • ₹{(h.type === 'DEVICE_UNIT' ? (h.data.product?.sellingPrice || h.data.purchasePrice || 0) : (h.data.sellingPrice || 0)).toLocaleString('en-IN')}
+                    <div className="text-[10px] text-[#86868b] mt-0.5 flex items-center gap-1.5 truncate">
+                      <span className="font-bold text-slate-800">
+                        ₹{(h.type === 'DEVICE_UNIT' ? (h.data.product?.sellingPrice || h.data.purchasePrice || 0) : (h.data.sellingPrice || 0)).toLocaleString('en-IN')}
+                      </span>
+                      {h.data.storage && <span>• {h.data.storage}</span>}
+                      {h.data.color && <span>• {h.data.color}</span>}
                     </div>
                   </div>
                   <span className="text-[10px] text-gray-400 shrink-0 font-mono">
@@ -665,28 +650,28 @@ export default function ScannerPage({ onNavigate }: ScannerPageProps) {
       {isPrintingPortal && lookupResult?.data && typeof document !== 'undefined' && createPortal(
         <div id="printable-root" className="printable-labels-container">
           <div className="batch-barcode-sticker">
-            <div className="w-full flex items-center justify-between border-b border-black/20 pb-0.5 leading-none">
-              <span className="text-[8px] font-black text-blue-900 uppercase tracking-wider">THE CELL POINT</span>
+            <div className="w-full flex items-center justify-center border-b border-black/20 pb-0.5 leading-none">
+              <span className="text-[10px] font-black text-black uppercase tracking-wider mx-auto">THE CELL POINT</span>
             </div>
-            <div className="w-full text-[8px] font-bold text-black truncate uppercase tracking-tight my-0.5 leading-tight text-left">
+            <div className="w-full text-[8px] font-bold text-black truncate uppercase tracking-tight my-0.5 leading-tight text-left pl-1.5 pr-1">
               {lookupResult.type === 'DEVICE_UNIT' ? (lookupResult.data.product?.name || 'DEVICE') : lookupResult.data.name}
             </div>
             <div
-              className="w-full flex items-center justify-start my-0.5 overflow-hidden max-h-[14mm] pl-0"
+              className="w-full flex items-center justify-start my-0.5 overflow-hidden max-h-[14mm] pl-1.5"
               dangerouslySetInnerHTML={{
                 __html: generateBarcodeSvg({
                   type: 'code128',
                   value: lookupResult.data.scannedBarcode || (lookupResult.type === 'DEVICE_UNIT' ? (lookupResult.data.barcode || lookupResult.data.imei1) : lookupResult.data.barcode) || '000000',
                   includeText: false,
-                  height: 10,
+                  height: 12,
                   scale: 1,
                   align: 'left',
                 }),
               }}
             />
-            <div className="w-full flex items-center justify-between text-[7px] border-t border-black/20 pt-0.5 leading-none pl-0">
+            <div className="w-full flex items-center justify-between text-[7px] border-t border-black/20 pt-0.5 leading-none pl-1.5 pr-1">
               <span className="font-mono font-semibold text-black truncate max-w-[55%]">
-                {lookupResult.data.scannedBarcode || (lookupResult.type === 'DEVICE_UNIT' ? (lookupResult.data.barcode || lookupResult.data.imei1) : lookupResult.data.barcode)}
+                {lookupResult.data.customValue || lookupResult.data.product?.customValue || lookupResult.data.scannedBarcode || (lookupResult.type === 'DEVICE_UNIT' ? (lookupResult.data.barcode || lookupResult.data.imei1) : lookupResult.data.barcode)}
               </span>
               <span className="font-extrabold text-black ml-auto whitespace-nowrap">
                 MRP: ₹{(lookupResult.type === 'DEVICE_UNIT' ? (lookupResult.data.product?.sellingPrice || lookupResult.data.purchasePrice || 0) : (lookupResult.data.sellingPrice || 0)).toLocaleString('en-IN')}

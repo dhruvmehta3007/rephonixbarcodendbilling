@@ -191,6 +191,7 @@ export default function DevicesPage() {
       const items = [{
         name: printDevice.product?.name || 'DEVICE',
         barcode: printDevice.barcode || printDevice.imei1 || 'DEVICE',
+        customValue: printDevice.customValue || printDevice.product?.customValue,
         price: printDevice.product?.sellingPrice || 0,
         quantity: 1,
       }];
@@ -221,6 +222,7 @@ export default function DevicesPage() {
         items: [{
           name: printDevice.product?.name || 'DEVICE',
           barcode: printDevice.barcode || printDevice.imei1 || 'DEVICE',
+          customValue: printDevice.customValue || printDevice.product?.customValue,
           price: printDevice.product?.sellingPrice || 0,
           quantity: 1,
         }],
@@ -433,7 +435,7 @@ export default function DevicesPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 text-[#86868b] text-xs font-bold uppercase tracking-wider border-b border-slate-200">
+                <thead className="bg-slate-50 text-slate-700 text-xs font-bold uppercase tracking-wider border-b border-slate-200">
                   <tr>
                     <th className="py-3.5 px-4">Device / Model</th>
                     <th className="py-3.5 px-4">Barcode / IMEI</th>
@@ -458,28 +460,33 @@ export default function DevicesPage() {
                         <div className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
                           {dev.product?.name}
                         </div>
-                        <div className="text-xs text-[#86868b] flex items-center gap-2 mt-0.5">
+                        <div className="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
                           {dev.storage && <span>{dev.storage}</span>}
                           {dev.color && <span>• {dev.color}</span>}
-                          <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-semibold">
+                          <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-semibold border border-slate-200">
                             {dev.condition}
                           </span>
                         </div>
                       </td>
 
                       <td className="py-3.5 px-4 font-mono">
-                        <div className="text-xs text-blue-700 font-bold">{dev.barcode}</div>
-                        {dev.imei1 && (
-                          <div className="text-[11px] text-[#86868b]">IMEI: {dev.imei1}</div>
+                        <div className="text-xs text-blue-800 font-bold">{dev.barcode}</div>
+                        {(dev.customValue || dev.product?.customValue) && (
+                          <div className="text-[11px] text-slate-600 font-semibold mt-0.5">
+                            Label: <span className="font-mono text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded text-[10px] border border-slate-200">{dev.customValue || dev.product?.customValue}</span>
+                          </div>
+                        )}
+                        {dev.imei1 && dev.imei1 !== dev.barcode && (
+                          <div className="text-[11px] text-slate-500 font-medium">IMEI: {dev.imei1}</div>
                         )}
                         {dev.serialNumber && (
-                          <div className="text-[11px] text-[#86868b]">S/N: {dev.serialNumber}</div>
+                          <div className="text-[11px] text-slate-500 font-medium">S/N: {dev.serialNumber}</div>
                         )}
                       </td>
 
                       <td className="py-3.5 px-4 text-slate-700">
-                        <div className="flex items-center gap-1.5 text-xs font-medium">
-                          <Calendar size={13} className="text-[#86868b]" />
+                        <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+                          <Calendar size={13} className="text-slate-500" />
                           {new Date(dev.purchaseDate).toLocaleDateString('en-IN', {
                             day: 'numeric',
                             month: 'short',
@@ -489,22 +496,22 @@ export default function DevicesPage() {
                       </td>
 
                       <td className="py-3.5 px-4">
-                        <div className="font-black text-emerald-600">
+                        <div className="font-black text-emerald-800 text-sm">
                           ₹{dev.purchasePrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </div>
                         {dev.product?.sellingPrice > 0 && (
-                          <div className="text-[11px] text-[#86868b] font-medium">
+                          <div className="text-xs text-slate-700 font-semibold mt-0.5">
                             Selling: ₹{dev.product.sellingPrice.toLocaleString('en-IN')}
                           </div>
                         )}
                       </td>
 
                       <td className="py-3.5 px-4">
-                        <div className="text-xs text-slate-700 font-semibold">
+                        <div className="text-xs text-slate-800 font-bold">
                           {dev.supplier?.name || 'Direct / Walk-in'}
                         </div>
                         {dev.purchaseInvoiceNo && (
-                          <div className="text-[11px] text-[#86868b]">
+                          <div className="text-[11px] text-slate-500 font-medium">
                             Inv: {dev.purchaseInvoiceNo}
                           </div>
                         )}
@@ -512,17 +519,17 @@ export default function DevicesPage() {
 
                       <td className="py-3.5 px-4">
                         <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${
                             dev.status === 'IN_STOCK'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
                               : dev.status === 'SOLD'
-                              ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                              : 'bg-amber-50 text-amber-700 border border-amber-200'
+                              ? 'bg-blue-100 text-blue-900 border-blue-300'
+                              : 'bg-amber-100 text-amber-900 border-amber-300'
                           }`}
                         >
                           <span
                             className={`w-1.5 h-1.5 rounded-full ${
-                              dev.status === 'IN_STOCK' ? 'bg-emerald-500' : 'bg-blue-500'
+                              dev.status === 'IN_STOCK' ? 'bg-emerald-600' : 'bg-blue-600'
                             }`}
                           />
                           {dev.status === 'IN_STOCK'
@@ -697,15 +704,8 @@ export default function DevicesPage() {
 
                       {lookupResult.data.imei1 && (
                         <div className="p-3 bg-[#f5f5f7] rounded-xl border border-black/[0.08]">
-                          <span className="text-[#86868b] block text-[10px]">IMEI 1:</span>
+                          <span className="text-[#86868b] block text-[10px]">IMEI:</span>
                           <span className="text-[#1d1d1f] font-bold text-sm">{lookupResult.data.imei1}</span>
-                        </div>
-                      )}
-
-                      {lookupResult.data.imei2 && (
-                        <div className="p-3 bg-[#f5f5f7] rounded-xl border border-black/[0.08]">
-                          <span className="text-[#86868b] block text-[10px]">IMEI 2:</span>
-                          <span className="text-[#1d1d1f] font-bold text-sm">{lookupResult.data.imei2}</span>
                         </div>
                       )}
 
@@ -893,24 +893,29 @@ export default function DevicesPage() {
                 </div>
               </div>
 
-              {/* 4. EAN / Barcode & Label Value */}
+              {/* 4. IMEI Number & Label Value */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-semibold text-[#1d1d1f]">
-                      EAN / Barcode *
+                    <label className="text-xs font-semibold text-slate-800">
+                      IMEI Number *
                     </label>
                     <button
                       type="button"
-                      onClick={() =>
+                      onClick={() => {
+                        const prefix = '35';
+                        let randomDigits = '';
+                        for (let i = 0; i < 13; i++) {
+                          randomDigits += Math.floor(Math.random() * 10).toString();
+                        }
                         setFormData({
                           ...formData,
-                          barcode: `890${Date.now().toString().slice(-9)}`,
-                        })
-                      }
-                      className="text-[11px] text-blue-400 hover:text-blue-300 font-medium"
+                          barcode: `${prefix}${randomDigits}`,
+                        });
+                      }}
+                      className="text-[11px] text-blue-600 hover:text-blue-700 font-bold"
                     >
-                      + Auto EAN
+                      + Gen IMEI
                     </button>
                   </div>
                   <input
@@ -918,24 +923,24 @@ export default function DevicesPage() {
                     required
                     value={formData.barcode}
                     onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                    placeholder="Scan EAN barcode or enter code"
-                    className="w-full bg-[#f5f5f7] border border-black/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-[#1d1d1f] font-mono placeholder:text-[#86868b] focus:outline-none focus:border-blue-500"
+                    placeholder="Scan 15-digit IMEI with barcode gun"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 font-mono font-bold placeholder:text-slate-400 focus:outline-none focus:border-blue-500"
                   />
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-semibold text-[#1d1d1f]">
+                    <label className="text-xs font-semibold text-slate-800">
                       Label Value (Left of MRP)
                     </label>
-                    <span className="text-[10px] text-[#86868b]">Optional</span>
+                    <span className="text-[10px] text-slate-400">Optional</span>
                   </div>
                   <input
                     type="text"
                     value={formData.customValue}
                     onChange={(e) => setFormData({ ...formData, customValue: e.target.value })}
-                    placeholder="e.g. Special code, tag or value"
-                    className="w-full bg-[#f5f5f7] border border-black/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-amber-300 font-mono placeholder:text-[#86868b] focus:outline-none focus:border-blue-500"
+                    placeholder="e.g. Sticker code (VX100P-512-BLK)"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 font-mono font-bold placeholder:text-slate-400 focus:outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
@@ -977,37 +982,36 @@ export default function DevicesPage() {
               </button>
             </div>
 
-            {/* Sticker Preview Box: CELL POINT Branding + Device Name + Barcode + MRP (Thermal roll label 30x15 mm, 2:1 aspect ratio) */}
+            {/* Sticker Preview Box: THE CELL POINT (50x25 mm standard 2:1 roll slip) */}
             <div 
-              className="printable-label my-4 p-1.5 bg-white text-black rounded-lg shadow-xl text-center font-sans border border-gray-300 mx-auto flex flex-col justify-between"
+              className="printable-label my-4 p-2 bg-white text-black rounded-lg shadow-xl text-center font-sans border border-slate-300 mx-auto flex flex-col justify-between"
               style={{
                 width: '100%',
-                maxWidth: '240px',
-                aspectRatio: '30/15',
+                maxWidth: '260px',
+                aspectRatio: '2/1',
                 boxSizing: 'border-box',
                 overflow: 'hidden',
               }}
             >
-              {/* Header: THE CELL POINT */}
-              <div className="w-full flex items-center justify-between border-b border-gray-300 pb-0.5 px-0.5 shrink-0">
-                <span className="font-extrabold text-[8px] tracking-wider text-blue-900 uppercase">THE CELL POINT</span>
-                <span className="text-[6.5px] text-gray-600 font-bold uppercase tracking-tight">VERIFIED</span>
+              {/* Header: Centered THE CELL POINT */}
+              <div className="w-full text-center pb-0.5 shrink-0">
+                <span className="font-black text-[12px] tracking-wider text-black uppercase font-mono">THE CELL POINT</span>
               </div>
 
-              {/* Product / Device Name */}
-              <div className="w-full font-bold text-[7.5px] text-gray-950 uppercase leading-tight tracking-tight px-0.5 py-0.5 shrink-0 truncate text-left">
+              {/* Product / Device Name - Clean reduced left margin */}
+              <div className="w-full font-bold text-[8.5px] text-black uppercase leading-tight tracking-tight pl-2 pr-1 shrink-0 truncate text-left">
                 {printDevice.product?.name}
               </div>
 
-              {/* Barcode Vector - Clean, Flush Left, High Contrast */}
-              <div className="w-full flex justify-start items-center overflow-hidden my-0.5 flex-1 max-h-[7mm] pl-0">
+              {/* Barcode Vector - Clean reduced left margin Code 128 */}
+              <div className="w-full flex justify-start items-center overflow-hidden my-0.5 flex-1 max-h-[14mm] pl-2">
                 <div
-                  className="w-full flex justify-start items-center pl-0"
+                  className="flex justify-start items-center"
                   dangerouslySetInnerHTML={{
                     __html: generateBarcodeSvg({
                       type: 'code128',
                       value: printDevice.barcode || printDevice.imei1 || 'DEVICE',
-                      height: 10,
+                      height: 14,
                       scale: 1,
                       includeText: false,
                       align: 'left',
@@ -1016,11 +1020,11 @@ export default function DevicesPage() {
                 />
               </div>
 
-              {/* Footer: Barcode Number + MRP Price (Full Width, No Cutoff) */}
-              <div className="w-full flex items-center justify-between border-t border-gray-300 pt-0.5 px-0.5 shrink-0 font-mono text-[7px] font-bold text-gray-950">
-                <span className="tracking-tight truncate max-w-[50%]">{printDevice.customValue || printDevice.product?.customValue || printDevice.barcode}</span>
-                <span className="font-extrabold text-[7.5px] text-gray-950 ml-auto whitespace-nowrap">
-                  MRP: ₹{(printDevice.product?.sellingPrice || 0).toLocaleString('en-IN')}
+              {/* Footer: Barcode / Label Value on Left + Rs. Price on Right */}
+              <div className="w-full flex items-center justify-between pl-2 pr-1 shrink-0 font-mono text-[8px] font-bold text-black">
+                <span className="tracking-tight truncate max-w-[55%]">{printDevice.customValue || printDevice.product?.customValue || printDevice.barcode}</span>
+                <span className="font-black text-[9px] text-black ml-auto whitespace-nowrap">
+                  Rs. {Math.round(printDevice.product?.sellingPrice || 0)}
                 </span>
               </div>
             </div>
@@ -1129,26 +1133,26 @@ export default function DevicesPage() {
       {isPrintingPortal && printDevice && typeof document !== 'undefined' && createPortal(
         <div id="printable-root" className="printable-labels-container">
           <div className="batch-barcode-sticker">
-            <div className="w-full flex items-center justify-between border-b border-black/20 pb-0.5 leading-none">
-              <span className="text-[8px] font-black text-blue-900 uppercase tracking-wider">THE CELL POINT</span>
+            <div className="w-full flex items-center justify-center border-b border-black/20 pb-0.5 leading-none">
+              <span className="text-[10px] font-black text-black uppercase tracking-wider mx-auto">THE CELL POINT</span>
             </div>
-            <div className="w-full text-[8px] font-bold text-black truncate uppercase tracking-tight my-0.5 leading-tight text-left">
+            <div className="w-full text-[8px] font-bold text-black truncate uppercase tracking-tight my-0.5 leading-tight text-left pl-1.5">
               {printDevice.product?.name || 'DEVICE'}
             </div>
             <div
-              className="w-full flex items-center justify-start my-0.5 overflow-hidden max-h-[14mm] pl-0"
+              className="w-full flex items-center justify-start my-0.5 overflow-hidden max-h-[14mm] pl-1.5"
               dangerouslySetInnerHTML={{
                 __html: generateBarcodeSvg({
                   type: 'code128',
                   value: printDevice.barcode || printDevice.imei1 || 'DEVICE',
                   includeText: false,
-                  height: 10,
+                  height: 12,
                   scale: 1,
                   align: 'left',
                 }),
               }}
             />
-            <div className="w-full flex items-center justify-between text-[7px] border-t border-black/20 pt-0.5 leading-none pl-0">
+            <div className="w-full flex items-center justify-between text-[7px] border-t border-black/20 pt-0.5 leading-none pl-1.5 pr-1">
               <span className="font-mono font-semibold text-black truncate max-w-[55%]">
                 {printDevice.customValue || printDevice.product?.customValue || printDevice.barcode}
               </span>

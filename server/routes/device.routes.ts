@@ -178,13 +178,13 @@ router.get('/lookup', authenticate, async (req: AuthenticatedRequest, res: Respo
 // GET /api/devices - List devices with filtering and pagination
 router.get('/', authenticate, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { 
-      search, 
-      status, 
-      productId, 
-      supplierId, 
-      condition, 
-      page = '1', 
+    const {
+      search,
+      status,
+      productId,
+      supplierId,
+      condition,
+      page = '1',
       limit = '50',
       sortBy = 'purchaseDate',
       sortOrder = 'desc'
@@ -387,7 +387,7 @@ router.post('/', authenticate, requireAdmin, async (req: AuthenticatedRequest, r
         if (prod) {
           await tx.product.update({
             where: { id: targetProductId },
-            data: { 
+            data: {
               currentStock: prod.currentStock + 1,
               purchasePrice: data.purchasePrice, // update latest bought price
             },
@@ -547,30 +547,53 @@ router.put('/:id/mark-sold', authenticate, async (req: AuthenticatedRequest, res
 router.delete('/:id', authenticate, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = req.params.id as string;
-    const device = await prisma.deviceUnit.findUnique({ where: { id } });
+    const device = await prisma.deviceUnit.findUnique({
+      where: { id },
+      include: { product: true },
+    });
     if (!device) {
       return res.status(404).json({ error: 'Device not found' });
     }
 
-    if (device.status === 'SOLD') {
-      return res.status(400).json({ error: 'Cannot delete a device that has already been sold.' });
-    }
-
     await prisma.$transaction(async (tx) => {
+      // 1. Delete this device unit
       await tx.deviceUnit.delete({ where: { id } });
 
-      if (device.status === 'IN_STOCK') {
-        const prod = await tx.product.findUnique({ where: { id: device.productId } });
-        if (prod && prod.currentStock > 0) {
+      // 2. Update or archive associated product
+      if (device.productId) {
+        const remainingUnits = await tx.deviceUnit.count({
+          where: { productId: device.productId },
+        });
+
+        if (remainingUnits === 0) {
+          // If no units remain, archive the product so it is clean across tabs
           await tx.product.update({
             where: { id: device.productId },
-            data: { currentStock: prod.currentStock - 1 },
+            data: { isArchived: true, currentStock: 0 },
           });
+        } else if (device.status === 'IN_STOCK') {
+          // If other units exist and deleted device was in stock, decrement stock
+          const prod = await tx.product.findUnique({ where: { id: device.productId } });
+          if (prod && prod.currentStock > 0) {
+            await tx.product.update({
+              where: { id: device.productId },
+              data: { currentStock: Math.max(0, prod.currentStock - 1) },
+            });
+          }
         }
       }
     });
 
-    return res.json({ success: true, message: 'Device deleted' });
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'DEVICE_DELETE',
+      entity: 'DeviceUnit',
+      entityId: id,
+      details: `Deleted device unit "${device.product?.name || 'Device'}" (Barcode: ${device.barcode})`,
+      ipAddress: req.ip,
+    });
+
+    return res.json({ success: true, message: 'Device deleted successfully' });
   } catch (error: any) {
     return res.status(500).json({ error: error.message || 'Failed to delete device' });
   }

@@ -1,6 +1,8 @@
 export interface TSPLItem {
   name: string;
   barcode: string;
+  customValue?: string;
+  labelValue?: string;
   price?: number | string;
   quantity?: number;
 }
@@ -45,7 +47,7 @@ export function buildCellPointTSPLJob(
     if (item.price !== undefined && item.price !== null && item.price !== '') {
       const numPrice = Number(item.price);
       if (!isNaN(numPrice)) {
-        priceText = `Rs. ${Math.round(numPrice)}`;
+        priceText = `Rs. ${Math.round(numPrice).toLocaleString('en-IN')}`;
       } else {
         priceText = `Rs. ${item.price}`;
       }
@@ -60,60 +62,64 @@ export function buildCellPointTSPLJob(
       const priceX = Math.max(120, 230 - priceWidth);
 
       // Centered: 14 chars in Font 1 (8x12) = 112 dots -> (240 - 112)/2 = 64
-      commands.push(`TEXT 64,4,"1",0,1,1,"THE CELL POINT"`);
-      commands.push(`TEXT 8,18,"1",0,1,1,"${cleanName}"`);
-      // Code 128: narrow=2, wide=2 (1:1 ratio) with clean quiet zones
-      commands.push(`BARCODE 8,34,"128",30,0,0,2,2,"${cleanBarcode}"`);
-      const barcodeFont = cleanBarcode.length > 12 ? '1' : '1';
-      commands.push(`TEXT 8,68,"${barcodeFont}",0,1,1,"${cleanBarcode.slice(0, 14)}"`);
+      commands.push(`TEXT 64,10,"1",0,1,1,"THE CELL POINT"`);
+      const nameWidth = cleanName.length * 8;
+      const nameX = Math.max(8, Math.floor((240 - nameWidth) / 2));
+      commands.push(`TEXT ${nameX},26,"1",0,1,1,"${cleanName}"`);
+      // Code 128: narrow=2, wide=2 (1:1 ratio) with clean quiet zones (encodes IMEI barcode)
+      commands.push(`BARCODE 8,42,"128",28,0,0,2,2,"${cleanBarcode}"`);
+      const labelText = (item.customValue || item.labelValue || cleanBarcode).replace(/"/g, '').trim();
+      const barcodeFont = labelText.length > 12 ? '1' : '1';
+      commands.push(`TEXT 8,78,"${barcodeFont}",0,1,1,"${labelText.slice(0, 14)}"`);
       if (priceText) {
-        commands.push(`TEXT ${priceX},68,"1",0,1,1,"${priceText}"`);
+        commands.push(`TEXT ${priceX},78,"1",0,1,1,"${priceText}"`);
       }
     } else {
       // Authoritative 50x25 mm standard layout (400x200 dots @ 203 DPI)
       const cleanName = (item.name || 'PRODUCT').slice(0, 36).toUpperCase().replace(/"/g, '');
       const nameFont = cleanName.length > 22 ? '1' : '2';
-      const nameY = cleanName.length > 22 ? 32 : 28;
 
-      // Header: THE CELL POINT (Font 2 = 12x20 dots, 14 chars = 168 dots, centered at X=116, Y=8)
-      commands.push(`TEXT 116,8,"2",0,1,1,"THE CELL POINT"`);
+      // Header: THE CELL POINT in Font 3 (16x24 dots, 14 chars = 224 dots, centered at X=88, Y=10)
+      commands.push(`TEXT 88,10,"3",0,1,1,"THE CELL POINT"`);
 
-      // Product Name (2mm inset from edge to prevent mechanical clipping)
-      commands.push(`TEXT 16,${nameY},"${nameFont}",0,1,1,"${cleanName}"`);
+      // Product Name: Configured at X=88, Y=38
+      const nameY = nameFont === '2' ? 38 : 40;
+      commands.push(`TEXT 88,${nameY},"${nameFont}",0,1,1,"${cleanName}"`);
 
-      // Barcode dimension & quiet zone calculation
+      // Barcode dimension & module calculation:
       const isPureDigits = /^\d+$/.test(cleanBarcode);
       const estimatedModules = isPureDigits
-        ? Math.ceil(cleanBarcode.length / 2) * 11 + 35
+        ? Math.ceil(cleanBarcode.length / 2) * 11 + 25
         : cleanBarcode.length * 11 + 35;
 
       let narrow = 2;
       let barcodeWidth = estimatedModules * narrow;
 
-      // Keep barcode strictly <= 360 dots to preserve at least 20 dots quiet zone on both sides
+      // Keep barcode strictly <= 360 dots to preserve quiet zone on right side
       if (barcodeWidth > 360) {
         narrow = 1;
         barcodeWidth = estimatedModules * 1;
       }
 
-      // Centered X position with at least 16 dots (2mm) margin
-      const startX = Math.max(16, Math.floor((400 - barcodeWidth) / 2));
+      // Barcode: Code 128, height=84 dots (~10.5mm), Y=60 to Y=144 at X=65
+      // Leaves a clean 14-dot (~1.75mm) gap before bottom row
+      commands.push(`BARCODE 65,60,"128",84,0,0,${narrow},${narrow},"${cleanBarcode}"`);
 
-      // Barcode: Code 128, Height=66 dots (~8.2mm), Y=52 to Y=118
-      commands.push(`BARCODE ${startX},52,"128",66,0,0,${narrow},${narrow},"${cleanBarcode}"`);
-
-      // Barcode text on left: capped to ensure it never encroaches on 6-digit price space
-      // If barcode > 14 chars, switch to Font 1 (8 dots/char) to prevent overlapping price
-      const barcodeFont = cleanBarcode.length > 14 ? '1' : '2';
-      commands.push(`TEXT 16,128,"${barcodeFont}",0,1,1,"${cleanBarcode}"`);
+      // Printed label text on left: Print label value (customValue) if provided, otherwise IMEI barcode
+      // Positioned at X=24 with clean gap after barcode
+      const labelText = (item.customValue || item.labelValue || cleanBarcode).replace(/"/g, '').trim();
+      const isLongText = labelText.length > 10;
+      const textFont = isLongText ? '1' : '2';
+      const textY = isLongText ? 162 : 160;
+      commands.push(`TEXT 24,${textY},"${textFont}",0,1,1,"${labelText}"`);
 
       if (priceText) {
-        // Price on right: guaranteed minimum space for 6+ digits (e.g. Rs. 150000 / Rs. 999999)
-        // Font 3 is 16x24 dots bold. 10 chars = 160 dots.
-        // Right-align from X=384, with minimum left boundary at X=190
+        // Price on right: guaranteed minimum space for 6+ digits (e.g. Rs. 1,50,000 / Rs. 9,99,999)
+        // Font 3 is 16x24 dots bold. Y=158 ends at Y=182, leaving comfortable bottom margin
+        // Right-align from X=384 (leaving matching 16 dots / 2mm margin on right)
         const priceWidth = priceText.length * 16;
-        const priceX = Math.max(190, 384 - priceWidth);
-        commands.push(`TEXT ${priceX},128,"3",0,1,1,"${priceText}"`);
+        const priceX = Math.max(180, 384 - priceWidth);
+        commands.push(`TEXT ${priceX},158,"3",0,1,1,"${priceText}"`);
       }
     }
 

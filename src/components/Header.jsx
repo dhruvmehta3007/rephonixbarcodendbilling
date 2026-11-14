@@ -69,7 +69,7 @@ export default function Header({
             </svg>
           </div>
           <span style={{ letterSpacing: '-0.3px' }}>
-            CellPoint <span style={{ color: '#60a5fa', fontWeight: 600 }}>Barcode</span>
+            The Cell Point <span style={{ color: '#60a5fa', fontWeight: 600 }}>Barcode</span>
           </span>
         </div>
         <span className="brand-badge">Enterprise v2.4</span>

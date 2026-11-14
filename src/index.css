@@ -25,13 +25,16 @@ body {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.16);
   border-radius: 9999px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.28);
 }
@@ -43,13 +46,16 @@ body {
     margin: 0;
   }
 
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     box-sizing: border-box !important;
   }
 
-  body, html {
+  body,
+  html {
     background: #ffffff !important;
     color: #000000 !important;
     margin: 0 !important;
@@ -59,7 +65,9 @@ body {
   }
 
   /* Force crisp thermal rendering */
-  svg, img, canvas {
+  svg,
+  img,
+  canvas {
     shape-rendering: crispEdges !important;
     image-rendering: pixelated !important;
   }
@@ -114,16 +122,14 @@ body {
     display: flex !important;
     flex-direction: column !important;
     justify-content: space-between !important;
-    align-items: flex-start !important;
-    text-align: left !important;
+    align-items: center !important;
+    text-align: center !important;
     width: 50mm !important;
     height: 25mm !important;
     max-width: 50mm !important;
     max-height: 25mm !important;
     margin: 0 !important;
-    margin-left: 0 !important;
-    padding: 0.5mm 0.5mm 0.5mm 0mm !important;
-    padding-left: 0 !important;
+    padding: 0.5mm 1.5mm !important;
     background: #ffffff !important;
     color: #000000 !important;
     box-shadow: none !important;
@@ -137,9 +143,7 @@ body {
     display: block !important;
     position: static !important;
     margin: 0 !important;
-    margin-left: 0 !important;
     padding: 0 !important;
-    padding-left: 0 !important;
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
@@ -154,16 +158,14 @@ body {
     display: flex !important;
     flex-direction: column !important;
     justify-content: space-between !important;
-    align-items: flex-start !important;
-    text-align: left !important;
+    align-items: center !important;
+    text-align: center !important;
     width: 50mm !important;
     height: 25mm !important;
     max-width: 50mm !important;
     max-height: 25mm !important;
     margin: 0 !important;
-    margin-left: 0 !important;
-    padding: 0.5mm 0.5mm 0.5mm 0mm !important;
-    padding-left: 0 !important;
+    padding: 0.5mm 1.5mm !important;
     background: #ffffff !important;
     border: none !important;
     box-shadow: none !important;
