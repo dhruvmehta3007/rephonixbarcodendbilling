@@ -902,45 +902,41 @@ export default function DevicesPage() {
               className="printable-label my-6 p-2 bg-white text-black rounded-lg shadow-xl text-center font-sans border border-gray-300 mx-auto flex flex-col justify-between"
               style={{
                 width: '100%',
-                maxWidth: '220px',
-                aspectRatio: '20/40',
+                maxWidth: '260px',
+                aspectRatio: '40/20',
               }}
             >
               {/* CELL POINT Header */}
-              <div className="w-full font-black text-[10px] tracking-wider text-blue-900 uppercase border-b border-gray-300 pb-1 flex flex-col items-center justify-center shrink-0">
-                <span>CELL POINT</span>
-                <span className="text-[7.5px] text-gray-500 font-semibold tracking-normal">VERIFIED DEVICE</span>
+              <div className="w-full flex items-center justify-between border-b border-gray-300 pb-0.5 px-1 shrink-0">
+                <span className="font-black text-[9px] tracking-wider text-blue-900 uppercase">CELL POINT</span>
+                <span className="text-[7px] text-gray-500 font-semibold tracking-normal uppercase">VERIFIED</span>
               </div>
 
-              {/* Device Name - Bold, Clear & Legible */}
-              <div className="w-full font-black text-[11px] text-gray-950 uppercase leading-snug tracking-tight px-0.5 py-1 shrink-0 break-words line-clamp-2">
+              {/* Device Name - Bold, Clear & Compact */}
+              <div className="w-full font-black text-[10px] text-gray-950 uppercase leading-tight tracking-tight px-0.5 py-0.5 shrink-0 truncate">
                 {printDevice.product?.name}
               </div>
 
-              {/* Barcode SVG - Scaled for 20mm feed */}
-              <div className="w-full flex justify-center items-center overflow-hidden my-1">
+              {/* Barcode SVG - Scaled for 40x20mm label */}
+              <div className="w-full flex justify-center items-center overflow-hidden my-0.5 max-h-[6.5mm]">
                 <div
                   className="w-full flex justify-center items-center"
                   dangerouslySetInnerHTML={{
                     __html: generateBarcodeSvg({
                       type: 'code128',
                       value: printDevice.barcode || printDevice.imei1 || 'DEVICE',
-                      height: 8,
-                      scale: 1.0,
+                      height: 5.5,
+                      scale: 0.95,
                       includeText: false,
                     }),
                   }}
                 />
               </div>
 
-              {/* Barcode / Value Code */}
-              <div className="w-full text-center font-mono font-bold text-[9px] text-gray-800 tracking-wider">
-                {printDevice.customValue || printDevice.product?.customValue || printDevice.barcode}
-              </div>
-
-              {/* Selling Price / MRP */}
-              <div className="w-full border-t border-gray-300 pt-1 text-center shrink-0">
-                <span className="font-black text-[11px] text-gray-950 block">
+              {/* Barcode / Value Code + Selling Price */}
+              <div className="w-full flex items-center justify-between border-t border-gray-300 pt-0.5 px-1 shrink-0 font-mono text-[8px] font-bold text-gray-800">
+                <span>{printDevice.customValue || printDevice.product?.customValue || printDevice.barcode}</span>
+                <span className="font-black text-[9.5px] text-gray-950">
                   MRP: ₹{(printDevice.product?.sellingPrice || 0).toLocaleString('en-IN')}
                 </span>
               </div>

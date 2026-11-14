@@ -20,7 +20,7 @@ export default function BarcodePage() {
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [symbology, setSymbology] = useState<'code128' | 'ean13'>('code128');
-  const [labelSize, setLabelSize] = useState<'20x40' | '40x20' | '50x25' | '50x30'>('20x40');
+  const [labelSize, setLabelSize] = useState<'40x20' | '20x40' | '50x25' | '50x30'>('40x20');
   const [showPrice, setShowPrice] = useState(true); // Default to showing MRP / selling price
   const [showBarcodeText, setShowBarcodeText] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -205,8 +205,8 @@ export default function BarcodePage() {
                     onChange={(e) => setLabelSize(e.target.value as any)}
                     className="w-full bg-white border border-black/[0.08] rounded-lg px-2 py-1 text-[#1d1d1f] text-xs"
                   >
-                    <option value="20x40">20 × 40 mm (Vertical Thermal Roll)</option>
-                    <option value="40x20">40 × 20 mm (Horizontal)</option>
+                    <option value="40x20">40 × 20 mm (4BARCODE Thermal Roll)</option>
+                    <option value="20x40">20 × 40 mm (Vertical)</option>
                     <option value="50x25">50 × 25 mm</option>
                     <option value="50x30">50 × 30 mm</option>
                   </select>
