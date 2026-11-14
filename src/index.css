@@ -36,11 +36,11 @@ body {
   background: rgba(0, 0, 0, 0.28);
 }
 
-/* Print Media Styling: Specifically for 40x20mm thermal barcode printers (Vertical / Portrait single label) */
+/* Print Media Styling: Specifically for 40x20mm thermal barcode printers */
 @media print {
   @page {
     margin: 0 !important;
-    size: portrait !important;
+    size: 40mm 20mm !important;
   }
 
   body, html {
@@ -48,8 +48,8 @@ body {
     color: #000000 !important;
     margin: 0 !important;
     padding: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
+    width: 40mm !important;
+    height: 20mm !important;
     overflow: hidden !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -76,17 +76,17 @@ body {
     visibility: visible !important;
   }
 
-  /* Single Barcode Sticker Print Mode (Vertical single page) */
+  /* Single Barcode Sticker Print Mode (Strictly 40mm wide by 20mm high) */
   .printable-label {
-    position: absolute !important;
+    position: fixed !important;
     left: 0 !important;
     top: 0 !important;
-    width: 100% !important;
-    max-width: 40mm !important;
-    height: 100% !important;
-    max-height: 20mm !important;
-    margin: 0 !important;
-    padding: 0.5mm 1mm !important;
+    width: 38mm !important;
+    height: 19mm !important;
+    max-width: 38mm !important;
+    max-height: 19mm !important;
+    margin: 0.5mm 1mm !important;
+    padding: 0.4mm 1mm !important;
     background: #ffffff !important;
     color: #000000 !important;
     box-shadow: none !important;
@@ -109,7 +109,7 @@ body {
     position: absolute !important;
     left: 0 !important;
     top: 0 !important;
-    width: 100% !important;
+    width: 40mm !important;
     display: block !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -124,12 +124,12 @@ body {
     flex-direction: column !important;
     justify-content: space-between !important;
     align-items: center !important;
-    width: 100% !important;
-    max-width: 40mm !important;
-    height: 20mm !important;
-    max-height: 20mm !important;
-    margin: 0 !important;
-    padding: 0.5mm 1mm !important;
+    width: 38mm !important;
+    height: 19mm !important;
+    max-width: 38mm !important;
+    max-height: 19mm !important;
+    margin: 0.5mm 1mm !important;
+    padding: 0.4mm 1mm !important;
     background: #ffffff !important;
     border: none !important;
     box-shadow: none !important;
