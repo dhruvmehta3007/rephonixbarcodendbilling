@@ -78,11 +78,18 @@ export default function CategoriesPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {categories.map((c) => (
-          <div key={c.id} className="p-5 rounded-2xl bg-white border border-black/[0.08] flex flex-col justify-between">
+          <div key={c.id} className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-mono text-blue-400 font-bold">/{c.slug}</span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-[#1d1d1f]">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200/50 flex items-center justify-center text-blue-600 shadow-sm">
+                    <FolderTree size={18} className="stroke-[2.2]" />
+                  </div>
+                  <span className="text-xs font-mono text-blue-700 font-bold bg-blue-50/70 px-2 py-0.5 rounded-lg border border-blue-200/50">
+                    /{c.slug}
+                  </span>
+                </div>
+                <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
                   {c._count?.products || 0} Products
                 </span>
               </div>
@@ -90,7 +97,7 @@ export default function CategoriesPage() {
               <p className="text-xs text-[#86868b] line-clamp-2">{c.description || 'No description provided.'}</p>
             </div>
 
-            <div className="mt-5 pt-3 border-t border-black/[0.08] flex items-center justify-end gap-2">
+            <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
               <button
                 onClick={() => {
                   setEditingCategory(c);
@@ -98,15 +105,19 @@ export default function CategoriesPage() {
                   setDescription(c.description || '');
                   setIsModalOpen(true);
                 }}
-                className="p-1.5 rounded-lg bg-slate-800 text-[#1d1d1f] hover:text-[#1d1d1f]"
+                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-600 border border-slate-200 hover:border-blue-300 transition-all shadow-sm flex items-center gap-1.5 text-xs font-semibold"
+                title="Edit Category"
               >
-                <Edit3 size={14} />
+                <Edit3 size={14} className="stroke-[2.2]" />
+                <span>Edit</span>
               </button>
               <button
                 onClick={() => handleDelete(c.id, c.name)}
-                className="p-1.5 rounded-lg bg-slate-800 text-[#86868b] hover:text-rose-400"
+                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-600 border border-slate-200 hover:border-rose-300 transition-all shadow-sm flex items-center gap-1.5 text-xs font-semibold"
+                title="Delete Category"
               >
-                <Trash2 size={14} />
+                <Trash2 size={14} className="stroke-[2.2]" />
+                <span>Delete</span>
               </button>
             </div>
           </div>
@@ -151,13 +162,13 @@ export default function CategoriesPage() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 text-[#1d1d1f] text-xs font-semibold"
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-[#0071e3] hover:bg-blue-500 text-white font-bold text-xs"
+                  className="px-5 py-2 rounded-xl bg-[#0071e3] hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/20"
                 >
                   Save Category
                 </button>

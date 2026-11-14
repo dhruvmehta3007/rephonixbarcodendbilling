@@ -358,17 +358,17 @@ export default function ProductsPage() {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => openEditModal(p)}
-                            className="p-1.5 rounded-lg bg-slate-800 text-[#1d1d1f] hover:text-[#1d1d1f] hover:bg-slate-700 transition-colors"
+                            className="p-2 rounded-xl bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 border border-slate-200 hover:border-blue-300 transition-all shadow-sm"
                             title="Edit Product"
                           >
-                            <Edit3 size={14} />
+                            <Edit3 size={15} className="stroke-[2.2]" />
                           </button>
                           <button
                             onClick={() => handleDeleteProduct(p.id, p.name)}
-                            className="p-1.5 rounded-lg bg-slate-800 text-[#86868b] hover:text-rose-400 hover:bg-rose-950/40 transition-colors"
+                            className="p-2 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200 hover:border-rose-300 transition-all shadow-sm"
                             title="Archive Product"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={15} className="stroke-[2.2]" />
                           </button>
                         </div>
                       </td>
@@ -617,7 +617,7 @@ export default function ProductsPage() {
                   setIsImportModalOpen(false);
                   setImportSummary(null);
                 }}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-[#1d1d1f] rounded-xl text-xs font-semibold"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors"
               >
                 Close
               </button>

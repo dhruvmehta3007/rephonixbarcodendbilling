@@ -296,7 +296,7 @@ export default function SuppliersPage() {
                 <button
                   type="button"
                   onClick={() => setIsSupplierModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 text-[#1d1d1f] text-xs font-semibold"
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
                 >
                   Cancel
                 </button>
@@ -409,7 +409,7 @@ export default function SuppliersPage() {
                 <button
                   type="button"
                   onClick={() => setIsPoModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 text-[#1d1d1f] text-xs font-semibold"
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
                 >
                   Cancel
                 </button>

@@ -6,12 +6,12 @@ import path from 'path';
  * Sends RAW TSPL/ZPL commands directly to a Windows thermal printer using winspool.drv
  */
 export function printRawTSPL(printerName: string, tsplCommands: string): { success: boolean; message: string } {
-  try {
-    const tempDir = path.resolve(process.env.TEMP || 'C:\\Windows\\Temp');
-    const tempFile = path.join(tempDir, `print_${Date.now()}.txt`);
-    fs.writeFileSync(tempFile, tsplCommands, 'utf8');
+    try {
+        const tempDir = path.resolve(process.env.TEMP || 'C:\\Windows\\Temp');
+        const tempFile = path.join(tempDir, `print_${Date.now()}.txt`);
+        fs.writeFileSync(tempFile, tsplCommands, 'utf8');
 
-    const psScript = `
+        const psScript = `
 Add-Type -TypeDefinition @"
 using System;
 using System.IO;
@@ -82,23 +82,23 @@ public class RawPrinterHelper
 "@
 [RawPrinterHelper]::SendFileToPrinter('${printerName.replace(/'/g, "''")}', '${tempFile.replace(/'/g, "''").replace(/\\/g, "\\\\")}')
 `;
-    const tempPs = path.join(tempDir, `print_script_${Date.now()}.ps1`);
-    fs.writeFileSync(tempPs, psScript, 'utf8');
+        const tempPs = path.join(tempDir, `print_script_${Date.now()}.ps1`);
+        fs.writeFileSync(tempPs, psScript, 'utf8');
 
-    const result = execSync(`powershell -ExecutionPolicy Bypass -File "${tempPs}"`).toString().trim();
+        const result = execSync(`powershell -ExecutionPolicy Bypass -File "${tempPs}"`).toString().trim();
 
-    try { fs.unlinkSync(tempFile); } catch {}
-    try { fs.unlinkSync(tempPs); } catch {}
+        try { fs.unlinkSync(tempFile); } catch { }
+        try { fs.unlinkSync(tempPs); } catch { }
 
-    const success = result.toLowerCase() === 'true';
-    return {
-      success,
-      message: success ? 'TSPL label sent successfully to printer' : 'Failed to send TSPL to printer spooler'
-    };
-  } catch (err: any) {
-    return {
-      success: false,
-      message: err.message || 'Error executing raw print'
-    };
-  }
+        const success = result.toLowerCase() === 'true';
+        return {
+            success,
+            message: success ? 'TSPL label sent successfully to printer' : 'Failed to send TSPL to printer spooler'
+        };
+    } catch (err: any) {
+        return {
+            success: false,
+            message: err.message || 'Error executing raw print'
+        };
+    }
 }
