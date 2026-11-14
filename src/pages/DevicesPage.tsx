@@ -995,14 +995,14 @@ export default function DevicesPage() {
               </div>
 
               {/* Product / Device Name */}
-              <div className="w-full font-bold text-[7.5px] text-gray-950 uppercase leading-tight tracking-tight px-0.5 py-0.5 shrink-0 truncate">
+              <div className="w-full font-bold text-[7.5px] text-gray-950 uppercase leading-tight tracking-tight px-0.5 py-0.5 shrink-0 truncate text-left">
                 {printDevice.product?.name}
               </div>
 
-              {/* Barcode Vector - Clean, Centered, High Contrast (Scale 1 for 30x15mm) */}
-              <div className="w-full flex justify-center items-center overflow-hidden my-0.5 flex-1 max-h-[7mm]">
+              {/* Barcode Vector - Clean, Flush Left, High Contrast */}
+              <div className="w-full flex justify-start items-center overflow-hidden my-0.5 flex-1 max-h-[7mm] pl-0">
                 <div
-                  className="w-full flex justify-center items-center"
+                  className="w-full flex justify-start items-center pl-0"
                   dangerouslySetInnerHTML={{
                     __html: generateBarcodeSvg({
                       type: 'code128',
@@ -1010,6 +1010,7 @@ export default function DevicesPage() {
                       height: 10,
                       scale: 1,
                       includeText: false,
+                      align: 'left',
                     }),
                   }}
                 />
@@ -1026,31 +1027,19 @@ export default function DevicesPage() {
 
             <div className="pt-2 space-y-2">
               <button
-                onClick={handlePrintDeviceBrowser}
-                className="w-full py-3 bg-[#0071e3] hover:bg-blue-600 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-md shadow-blue-600/30 transition-all cursor-pointer"
+                disabled={directPrinting}
+                onClick={handlePrintDeviceSpooler}
+                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-md shadow-emerald-600/30 transition-all cursor-pointer disabled:opacity-50"
               >
-                <Printer size={16} /> Print Sticker (Browser / Thermal Roll)
+                <Zap size={16} /> {directPrinting ? 'Sending to 4BARCODE...' : 'Direct Hardware Print (4BARCODE • Zero Dialog)'}
               </button>
 
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  disabled={directPrinting}
-                  onClick={handlePrintDeviceUSB}
-                  className="py-2.5 px-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-50"
-                  title="Direct USB Hardware TSPL (Chrome / Edge / Brave)"
-                >
-                  <Zap size={14} /> Direct USB (TSPL)
-                </button>
-
-                <button
-                  disabled={directPrinting}
-                  onClick={handlePrintDeviceSpooler}
-                  className="py-2.5 px-2 bg-slate-700 hover:bg-slate-600 text-white font-bold text-[11px] rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-50"
-                  title="Direct Windows Spooler Print (Local Windows Server only)"
-                >
-                  <RefreshCw size={13} className={directPrinting ? 'animate-spin' : ''} /> Local Spooler
-                </button>
-              </div>
+              <button
+                onClick={handlePrintDeviceBrowser}
+                className="w-full py-2.5 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 font-semibold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+              >
+                <Printer size={15} /> Browser Print (Preview / Dialog)
+              </button>
             </div>
           </div>
         </div>
@@ -1143,11 +1132,11 @@ export default function DevicesPage() {
             <div className="w-full flex items-center justify-between border-b border-black/20 pb-0.5 leading-none">
               <span className="text-[8px] font-black text-blue-900 uppercase tracking-wider">CELL POINT</span>
             </div>
-            <div className="w-full text-[8px] font-bold text-black truncate uppercase tracking-tight my-0.5 leading-tight text-center">
+            <div className="w-full text-[8px] font-bold text-black truncate uppercase tracking-tight my-0.5 leading-tight text-left">
               {printDevice.product?.name || 'DEVICE'}
             </div>
             <div
-              className="w-full flex items-center justify-center my-0.5 overflow-hidden max-h-[14mm]"
+              className="w-full flex items-center justify-start my-0.5 overflow-hidden max-h-[14mm] pl-0"
               dangerouslySetInnerHTML={{
                 __html: generateBarcodeSvg({
                   type: 'code128',
@@ -1155,10 +1144,11 @@ export default function DevicesPage() {
                   includeText: false,
                   height: 10,
                   scale: 1,
+                  align: 'left',
                 }),
               }}
             />
-            <div className="w-full flex items-center justify-between text-[7px] border-t border-black/20 pt-0.5 leading-none">
+            <div className="w-full flex items-center justify-between text-[7px] border-t border-black/20 pt-0.5 leading-none pl-0">
               <span className="font-mono font-semibold text-black truncate max-w-[55%]">
                 {printDevice.customValue || printDevice.product?.customValue || printDevice.barcode}
               </span>

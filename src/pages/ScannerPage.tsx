@@ -564,17 +564,20 @@ export default function ScannerPage({ onNavigate }: ScannerPageProps) {
               <div className="pt-2 space-y-2">
                 <div className="flex items-center gap-3">
                   <button
-                    onClick={handleBrowserPrintScanned}
-                    className="flex-1 py-3 bg-[#0071e3] hover:bg-blue-600 text-white rounded-xl font-bold text-xs shadow-md shadow-blue-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    disabled={directPrinting}
+                    onClick={handleDirectPrintScanned}
+                    className="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs shadow-md shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
                   >
-                    <Printer size={16} />
-                    <span>Print 50 × 25 mm Sticker (Browser Print)</span>
+                    <Zap size={16} />
+                    <span>
+                      {directPrinting ? 'Sending to 4BARCODE Hardware...' : 'Direct Hardware Print (4BARCODE • Zero Dialog)'}
+                    </span>
                   </button>
 
                   {onNavigate && (
                     <button
                       onClick={() => onNavigate('pos')}
-                      className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer"
+                      className="px-6 py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer"
                     >
                       <span>Open in POS</span>
                       <ArrowRight size={14} />
@@ -582,27 +585,13 @@ export default function ScannerPage({ onNavigate }: ScannerPageProps) {
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    disabled={directPrinting}
-                    onClick={handleWebSerialPrintScanned}
-                    className="py-2.5 px-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-[11px] shadow-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
-                    title="Direct USB Hardware TSPL (Chrome / Edge / Brave)"
-                  >
-                    <Zap size={14} />
-                    <span>Direct USB (TSPL)</span>
-                  </button>
-
-                  <button
-                    disabled={directPrinting}
-                    onClick={handleDirectPrintScanned}
-                    className="py-2.5 px-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold text-[11px] shadow-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
-                    title="Direct Windows Spooler Print (Local Windows Server only)"
-                  >
-                    <RefreshCw size={13} className={directPrinting ? 'animate-spin' : ''} />
-                    <span>Local Spooler</span>
-                  </button>
-                </div>
+                <button
+                  onClick={handleBrowserPrintScanned}
+                  className="w-full py-2.5 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 rounded-xl font-semibold text-xs shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                  <Printer size={15} />
+                  <span>Browser Print (Preview / Dialog)</span>
+                </button>
               </div>
             </div>
           ) : (
@@ -679,11 +668,11 @@ export default function ScannerPage({ onNavigate }: ScannerPageProps) {
             <div className="w-full flex items-center justify-between border-b border-black/20 pb-0.5 leading-none">
               <span className="text-[8px] font-black text-blue-900 uppercase tracking-wider">CELL POINT</span>
             </div>
-            <div className="w-full text-[8px] font-bold text-black truncate uppercase tracking-tight my-0.5 leading-tight text-center">
+            <div className="w-full text-[8px] font-bold text-black truncate uppercase tracking-tight my-0.5 leading-tight text-left">
               {lookupResult.type === 'DEVICE_UNIT' ? (lookupResult.data.product?.name || 'DEVICE') : lookupResult.data.name}
             </div>
             <div
-              className="w-full flex items-center justify-center my-0.5 overflow-hidden max-h-[14mm]"
+              className="w-full flex items-center justify-start my-0.5 overflow-hidden max-h-[14mm] pl-0"
               dangerouslySetInnerHTML={{
                 __html: generateBarcodeSvg({
                   type: 'code128',
@@ -691,10 +680,11 @@ export default function ScannerPage({ onNavigate }: ScannerPageProps) {
                   includeText: false,
                   height: 10,
                   scale: 1,
+                  align: 'left',
                 }),
               }}
             />
-            <div className="w-full flex items-center justify-between text-[7px] border-t border-black/20 pt-0.5 leading-none">
+            <div className="w-full flex items-center justify-between text-[7px] border-t border-black/20 pt-0.5 leading-none pl-0">
               <span className="font-mono font-semibold text-black truncate max-w-[55%]">
                 {lookupResult.data.scannedBarcode || (lookupResult.type === 'DEVICE_UNIT' ? (lookupResult.data.barcode || lookupResult.data.imei1) : lookupResult.data.barcode)}
               </span>

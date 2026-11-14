@@ -76,11 +76,11 @@ export function buildCellPointTSPLJob(
       const nameFont = cleanName.length > 22 ? '1' : '2';
       const nameY = cleanName.length > 22 ? 36 : 32;
 
-      // Header: CELL POINT (Font 2 = 12x20 dots, 10 chars = 120 dots, centered at X=140, Y=8)
-      commands.push(`TEXT 140,8,"2",0,1,1,"CELL POINT"`);
+      // Header: CELL POINT (flush left)
+      commands.push(`TEXT 0,8,"2",0,1,1,"CELL POINT"`);
 
-      // Product Name
-      commands.push(`TEXT 16,${nameY},"${nameFont}",0,1,1,"${cleanName}"`);
+      // Product Name (flush left)
+      commands.push(`TEXT 0,${nameY},"${nameFont}",0,1,1,"${cleanName}"`);
 
       // Barcode dimension & quiet zone calculation:
       // Code 128 has 11 modules per char + 35 overhead modules (start, check, stop, term).
@@ -93,21 +93,17 @@ export function buildCellPointTSPLJob(
       let narrow = 2;
       let barcodeWidth = estimatedModules * narrow;
 
-      // Keep barcode strictly <= 340 dots to guarantee at least 30 dots (3.75mm) of pure white quiet zone
-      if (barcodeWidth > 340) {
+      // Keep barcode strictly <= 380 dots
+      if (barcodeWidth > 380) {
         narrow = 1;
         barcodeWidth = estimatedModules * 1;
       }
 
-      // Centered X position with at least 20 dots minimum margin
-      const startX = Math.max(20, Math.floor((400 - barcodeWidth) / 2));
+      // Barcode starting at X=0 (zero left padding on slip)
+      commands.push(`BARCODE 0,56,"128",72,0,0,${narrow},${narrow},"${cleanBarcode}"`);
 
-      // Barcode: Code 128, Height=72 dots (~9mm), narrow=wide (strictly 1:1 for Code 128)
-      // No horizontal divider bars around barcode to prevent laser clipping when scanning at an angle!
-      commands.push(`BARCODE ${startX},56,"128",72,0,0,${narrow},${narrow},"${cleanBarcode}"`);
-
-      // Footer: Barcode text on left (Font 2 = 12x20 dots)
-      commands.push(`TEXT 16,146,"2",0,1,1,"${cleanBarcode}"`);
+      // Footer: Barcode text on left (flush left)
+      commands.push(`TEXT 0,146,"2",0,1,1,"${cleanBarcode}"`);
 
       if (priceText) {
         // Price on right (Font 3 = 16x24 dots bold)

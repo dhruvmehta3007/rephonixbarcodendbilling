@@ -334,40 +334,29 @@ export default function BarcodePage() {
               </div>
 
               <div className="space-y-2 pt-1">
-                {/* Primary Button: Browser Thermal Print */}
+                {/* Primary Button: Direct Hardware Print (Zero Dialog) */}
                 <button
-                  disabled={printableLabels.length === 0}
-                  onClick={handleBrowserPrint}
-                  className="w-full py-3 bg-[#0071e3] hover:bg-blue-600 text-white rounded-xl font-bold text-xs shadow-md shadow-blue-600/30 flex items-center justify-center gap-2 transition-all disabled:opacity-40 cursor-pointer"
+                  disabled={printableLabels.length === 0 || directPrinting}
+                  onClick={handleDirectTSPLPrint}
+                  className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs shadow-md shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all disabled:opacity-40 cursor-pointer"
                 >
-                  <Printer size={16} />
+                  <Zap size={16} />
                   <span>
-                    Print Labels ({printableLabels.length} Sticker{printableLabels.length > 1 ? 's' : ''} • Thermal Roll)
+                    {directPrinting
+                      ? 'Sending to 4BARCODE Hardware...'
+                      : `Direct Hardware Print (${printableLabels.length} Slip${printableLabels.length > 1 ? 's' : ''} • Zero Dialog)`}
                   </span>
                 </button>
 
-                {/* Secondary Hardware Options */}
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    disabled={printableLabels.length === 0 || directPrinting}
-                    onClick={handleWebSerialPrint}
-                    className="py-2.5 px-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-[11px] shadow-sm flex items-center justify-center gap-1.5 transition-all disabled:opacity-40 cursor-pointer"
-                    title="Direct USB Hardware TSPL (Chrome / Edge / Brave)"
-                  >
-                    <Zap size={14} />
-                    <span>Direct USB</span>
-                  </button>
-
-                  <button
-                    disabled={printableLabels.length === 0 || directPrinting}
-                    onClick={handleDirectTSPLPrint}
-                    className="py-2.5 px-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold text-[11px] shadow-sm flex items-center justify-center gap-1.5 transition-all disabled:opacity-40 cursor-pointer"
-                    title="Direct Windows Spooler Print (Local Windows Server only)"
-                  >
-                    <RefreshCw size={13} className={directPrinting ? 'animate-spin' : ''} />
-                    <span>Local Spooler</span>
-                  </button>
-                </div>
+                {/* Secondary Button: Browser Print Dialog */}
+                <button
+                  disabled={printableLabels.length === 0}
+                  onClick={handleBrowserPrint}
+                  className="w-full py-2.5 px-3 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 rounded-xl font-semibold text-xs shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-40 cursor-pointer"
+                >
+                  <Printer size={15} />
+                  <span>Browser Print (Preview / Dialog)</span>
+                </button>
               </div>
             </div>
           </div>
@@ -391,7 +380,7 @@ export default function BarcodePage() {
                   {printableLabels.map((prod, idx) => (
                     <div
                       key={idx}
-                      className="p-2 bg-white text-black rounded-lg shadow-sm border border-gray-200 flex flex-col justify-between items-center text-center select-none"
+                      className="py-1 px-1 bg-white text-black rounded-lg shadow-sm border border-gray-200 flex flex-col justify-between items-center text-center select-none"
                       style={{
                         width: '100%',
                         aspectRatio: '50/25',
@@ -410,13 +399,13 @@ export default function BarcodePage() {
                       </div>
 
                       {/* Device / Product Name */}
-                      <div className="w-full text-[8px] font-bold text-gray-950 truncate uppercase tracking-tight my-0.5 leading-tight">
+                      <div className="w-full text-[8px] font-bold text-gray-950 truncate uppercase tracking-tight my-0.5 leading-tight text-left">
                         {prod.name}
                       </div>
 
                       {/* Barcode Vector SVG (crisp high contrast for preview) */}
                       <div
-                        className="w-full flex items-center justify-center my-0.5 overflow-hidden max-h-[14mm]"
+                        className="w-full flex items-center justify-start my-0.5 overflow-hidden max-h-[14mm] pl-0"
                         dangerouslySetInnerHTML={{
                           __html: generateBarcodeSvg({
                             type: symbology,
@@ -424,12 +413,13 @@ export default function BarcodePage() {
                             includeText: false,
                             height: 10,
                             scale: 1,
+                            align: 'left',
                           }),
                         }}
                       />
 
                       {/* Footer: Barcode text + Price */}
-                      <div className="w-full flex items-center justify-between text-[7px] border-t border-gray-200 pt-0.5 leading-none">
+                      <div className="w-full flex items-center justify-between text-[7px] border-t border-gray-200 pt-0.5 leading-none pl-0">
                         {showBarcodeText && (
                           <span className="font-mono font-semibold text-gray-700 truncate max-w-[55%]">
                             {prod.uniqueBarcode || prod.customValue || prod.barcode}
@@ -478,13 +468,13 @@ export default function BarcodePage() {
               </div>
 
               {/* Device / Product Name */}
-              <div className="w-full text-[8px] font-bold text-black truncate uppercase tracking-tight my-0.5 leading-tight text-center">
+              <div className="w-full text-[8px] font-bold text-black truncate uppercase tracking-tight my-0.5 leading-tight text-left">
                 {prod.name}
               </div>
 
               {/* Barcode Vector SVG */}
               <div
-                className="w-full flex items-center justify-center my-0.5 overflow-hidden max-h-[14mm]"
+                className="w-full flex items-center justify-start my-0.5 overflow-hidden max-h-[14mm] pl-0"
                 dangerouslySetInnerHTML={{
                   __html: generateBarcodeSvg({
                     type: symbology,
@@ -492,12 +482,13 @@ export default function BarcodePage() {
                     includeText: false,
                     height: 10,
                     scale: 1,
+                    align: 'left',
                   }),
                 }}
               />
 
               {/* Footer: Barcode text + Price */}
-              <div className="w-full flex items-center justify-between text-[7px] border-t border-black/20 pt-0.5 leading-none">
+              <div className="w-full flex items-center justify-between text-[7px] border-t border-black/20 pt-0.5 leading-none pl-0">
                 {showBarcodeText && (
                   <span className="font-mono font-semibold text-black truncate max-w-[55%]">
                     {prod.uniqueBarcode || prod.customValue || prod.barcode}

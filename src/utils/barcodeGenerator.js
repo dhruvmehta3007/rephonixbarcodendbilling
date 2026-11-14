@@ -28,8 +28,9 @@ export function generateBarcodeSvg({
   height = 10,
   scale = 2,
   rotate = 'N', // N, R, L, I
+  align = 'center', // 'center' | 'left'
 }) {
-  const cacheKey = `${type}_${value}_${includeText}_${height}_${scale}_${rotate}`;
+  const cacheKey = `${type}_${value}_${includeText}_${height}_${scale}_${rotate}_${align}`;
   if (svgCache.has(cacheKey)) {
     return svgCache.get(cacheKey);
   }
@@ -60,14 +61,15 @@ export function generateBarcodeSvg({
       scale: is2D ? 3 : scale || 2,
       height: is2D ? undefined : height || 10,
       includetext: is2D ? false : !!includeText,
-      textxalign: 'center',
+      textxalign: align === 'left' ? 'left' : 'center',
       rotate: rotate || 'N',
     });
 
-    // Enforce uniform aspect ratio so barcode graphics are never stretched or compressed
+    const aspect = align === 'left' ? 'xMinYMid meet' : 'xMidYMid meet';
     if (!svg.includes('preserveAspectRatio')) {
-      svg = svg.replace('<svg ', '<svg preserveAspectRatio="xMidYMid meet" style="max-width:100%;max-height:100%;object-fit:contain;" ');
+      svg = svg.replace('<svg ', `<svg preserveAspectRatio="${aspect}" style="max-width:100%;max-height:100%;object-fit:contain;" `);
     } else {
+      svg = svg.replace(/preserveAspectRatio="[^"]*"/, `preserveAspectRatio="${aspect}"`);
       svg = svg.replace('<svg ', '<svg style="max-width:100%;max-height:100%;object-fit:contain;" ');
     }
 
