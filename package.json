@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "start": "tsx server/index.ts",
     "postinstall": "prisma generate",
     "db:setup": "prisma db push && npm run seed",
     "dev": "concurrently -n \"API,WEB\" -c \"cyan,magenta\" \"tsx watch server/index.ts\" \"vite\"",
