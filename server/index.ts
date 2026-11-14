@@ -57,22 +57,22 @@ app.use('/api/users', usersRoutes);
 app.use('/api/devices', deviceRoutes);
 app.use('/api/print', printRoutes);
 
+// Serve frontend static assets in production
+const clientDistPath = path.resolve(__dirname, '../dist');
+app.use(express.static(clientDistPath));
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (req.method === 'GET' && !req.path.startsWith('/api')) {
+    return res.sendFile(path.join(clientDistPath, 'index.html'));
+  }
+  next();
+});
+
 // Global Error Handler
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   console.error('Unhandled Server Error:', err);
   res.status(500).json({
     error: err.message || 'Internal Server Error',
   });
-});
-
-// Serve frontend static assets in production
-const clientDistPath = path.resolve(__dirname, '../dist');
-app.use(express.static(clientDistPath));
-app.get('*', (req: Request, res: Response, next: NextFunction) => {
-  if (req.path.startsWith('/api')) {
-    return next();
-  }
-  res.sendFile(path.join(clientDistPath, 'index.html'));
 });
 
 // Start listening if not in test mode
