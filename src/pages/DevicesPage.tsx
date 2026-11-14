@@ -897,48 +897,50 @@ export default function DevicesPage() {
               </button>
             </div>
 
-            {/* Sticker Preview Box: CELL POINT Branding + Device Name + Barcode + MRP (40x20mm thermal label) */}
+            {/* Sticker Preview Box: CELL POINT Branding + Device Name + Barcode + MRP (40x20mm thermal roll label) */}
             <div 
-              className="printable-label my-6 p-1.5 bg-white text-black rounded-lg shadow-xl text-center font-sans border border-gray-300 mx-auto flex flex-col justify-between"
+              className="printable-label my-6 p-2 bg-white text-black rounded-lg shadow-xl text-center font-sans border border-gray-300 mx-auto flex flex-col justify-between"
               style={{
                 width: '100%',
-                maxWidth: '260px',
-                aspectRatio: '40/20',
+                maxWidth: '220px',
+                aspectRatio: '20/40',
               }}
             >
               {/* CELL POINT Header */}
-              <div className="w-full font-black text-[9px] tracking-wider text-blue-900 uppercase border-b border-gray-300 pb-0.5 flex items-center justify-between px-1 shrink-0">
+              <div className="w-full font-black text-[10px] tracking-wider text-blue-900 uppercase border-b border-gray-300 pb-1 flex flex-col items-center justify-center shrink-0">
                 <span>CELL POINT</span>
-                <span className="text-[7.5px] text-gray-500 font-bold">RETAIL</span>
+                <span className="text-[7.5px] text-gray-500 font-semibold tracking-normal">VERIFIED DEVICE</span>
               </div>
 
               {/* Device Name - Bold, Clear & Legible */}
-              <div className="w-full font-black text-[11px] text-gray-950 uppercase leading-snug tracking-tight px-1 py-0.5 shrink-0 break-words line-clamp-1">
+              <div className="w-full font-black text-[11px] text-gray-950 uppercase leading-snug tracking-tight px-0.5 py-1 shrink-0 break-words line-clamp-2">
                 {printDevice.product?.name}
               </div>
 
-              {/* Barcode SVG - Slim & Compact so it doesn't overlap or crowd text */}
-              <div className="w-full flex justify-center items-center overflow-hidden my-0.5 max-h-[7mm]">
+              {/* Barcode SVG - Scaled for 20mm feed */}
+              <div className="w-full flex justify-center items-center overflow-hidden my-1">
                 <div
                   className="w-full flex justify-center items-center"
                   dangerouslySetInnerHTML={{
                     __html: generateBarcodeSvg({
                       type: 'code128',
                       value: printDevice.barcode || printDevice.imei1 || 'DEVICE',
-                      height: 5,
-                      scale: 1.1,
+                      height: 8,
+                      scale: 1.0,
                       includeText: false,
                     }),
                   }}
                 />
               </div>
 
-              {/* Selling Price / MRP & Value */}
-              <div className="w-full flex items-center justify-between border-t border-gray-300 pt-0.5 px-1 text-[8.5px] shrink-0">
-                <span className="font-mono font-bold text-gray-800 truncate max-w-[48%]">
-                  {printDevice.customValue || printDevice.product?.customValue || printDevice.barcode}
-                </span>
-                <span className="font-black text-gray-950">
+              {/* Barcode / Value Code */}
+              <div className="w-full text-center font-mono font-bold text-[9px] text-gray-800 tracking-wider">
+                {printDevice.customValue || printDevice.product?.customValue || printDevice.barcode}
+              </div>
+
+              {/* Selling Price / MRP */}
+              <div className="w-full border-t border-gray-300 pt-1 text-center shrink-0">
+                <span className="font-black text-[11px] text-gray-950 block">
                   MRP: ₹{(printDevice.product?.sellingPrice || 0).toLocaleString('en-IN')}
                 </span>
               </div>
