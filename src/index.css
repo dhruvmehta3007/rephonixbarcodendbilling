@@ -40,7 +40,7 @@ body {
 @media print {
   @page {
     margin: 0 !important;
-    size: 40mm 20mm landscape !important;
+    size: 40mm 20mm !important;
   }
 
   body, html {
@@ -50,6 +50,7 @@ body {
     padding: 0 !important;
     width: 40mm !important;
     height: 20mm !important;
+    max-height: 20mm !important;
     overflow: hidden !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -81,12 +82,12 @@ body {
     position: fixed !important;
     left: 0 !important;
     top: 0 !important;
-    width: 38mm !important;
-    height: 18mm !important;
-    max-width: 38mm !important;
-    max-height: 18mm !important;
-    margin: 1mm auto !important;
-    padding: 0.5mm 1mm !important;
+    width: 40mm !important;
+    height: 20mm !important;
+    max-width: 40mm !important;
+    max-height: 20mm !important;
+    margin: 0 !important;
+    padding: 0.8mm 1.5mm !important;
     background: #ffffff !important;
     color: #000000 !important;
     box-shadow: none !important;
@@ -124,12 +125,12 @@ body {
     flex-direction: column !important;
     justify-content: space-between !important;
     align-items: center !important;
-    width: 38mm !important;
-    height: 18mm !important;
-    max-width: 38mm !important;
-    max-height: 18mm !important;
-    margin: 1mm auto !important;
-    padding: 0.5mm 1mm !important;
+    width: 40mm !important;
+    height: 20mm !important;
+    max-width: 40mm !important;
+    max-height: 20mm !important;
+    margin: 0 !important;
+    padding: 0.8mm 1.5mm !important;
     background: #ffffff !important;
     border: none !important;
     box-shadow: none !important;
