@@ -1,16 +1,47 @@
-# React + Vite
+# CellPoint Barcode - POS & Device Barcode Management Suite
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Smart Retail POS, Barcode Generation Studio, and systematic Device Tracker.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🚀 Setup & Run on Any Machine
 
-## React Compiler
+When you clone this project onto a new computer, follow these quick steps:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 1. Clone the repository
+```bash
+git clone https://github.com/dhruvmehta3007/thecellpointbarcode.git
+cd thecellpointbarcode
+```
 
-## Expanding the Oxlint configuration
+### 2. Install Dependencies
+```bash
+npm install
+```
+*(This will automatically run `prisma generate` to configure your Prisma client).*
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+### 3. Setup Environment Variables
+Copy the example environment file:
+```bash
+cp .env.example .env
+```
+*(Or create a `.env` file with `DATABASE_URL="file:./dev.db"` and `JWT_SECRET=your_secret`).*
+
+### 4. Initialize Database & Seed Default Accounts
+```bash
+npm run db:setup
+```
+*(Or run `npx prisma db push && npm run seed`).*
+
+This will create the SQLite database (`dev.db`) and seed the default accounts and store settings:
+- **Admin**: `admin` / `admin123` (Name: Dhruv)
+- **Cashier**: `cashier` / `cashier123`
+
+### 5. Start the Application
+```bash
+npm run dev
+```
+
+This starts both:
+- **Frontend (Vite UI)** at `http://localhost:5173`
+- **Backend (Express API)** at `http://localhost:5001`
