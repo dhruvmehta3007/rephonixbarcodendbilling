@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Smartphone, 
   Scan, 
@@ -18,10 +19,13 @@ import {
   Info,
   Layers,
   ArrowRight,
-  Zap
+  Zap,
+  RefreshCw
 } from 'lucide-react';
 import { api } from '../services/api';
 import { generateBarcodeSvg } from '../utils/barcodeGenerator';
+import { buildCellPointTSPLJob } from '../utils/tsplBuilder';
+import { sendRawToSerialPrinter } from '../utils/webSerial';
 
 export default function DevicesPage() {
   const [devices, setDevices] = useState<any[]>([]);
@@ -60,6 +64,7 @@ export default function DevicesPage() {
   // Quick Print Modal for a device sticker
   const [printDevice, setPrintDevice] = useState<any>(null);
   const [directPrinting, setDirectPrinting] = useState(false);
+  const [isPrintingPortal, setIsPrintingPortal] = useState(false);
 
   // Mark Sold Modal
   const [sellingDevice, setSellingDevice] = useState<any>(null);
@@ -166,6 +171,79 @@ export default function DevicesPage() {
 
   const printSticker = (device: any) => {
     setPrintDevice(device);
+  };
+
+  const handlePrintDeviceBrowser = () => {
+    if (!printDevice) return;
+    setIsPrintingPortal(true);
+    document.body.classList.add('printing-portal');
+    setTimeout(() => {
+      window.print();
+      setIsPrintingPortal(false);
+      document.body.classList.remove('printing-portal');
+    }, 200);
+  };
+
+  const handlePrintDeviceUSB = async () => {
+    if (!printDevice) return;
+    setDirectPrinting(true);
+    try {
+      const items = [{
+        name: printDevice.product?.name || 'DEVICE',
+        barcode: printDevice.barcode || printDevice.imei1 || 'DEVICE',
+        price: printDevice.product?.sellingPrice || 0,
+        quantity: 1,
+      }];
+      const tsplCode = buildCellPointTSPLJob(items, {
+        gapMM: 3,
+        labelSize: '50x25',
+        widthMM: 50,
+        heightMM: 25,
+      });
+      await sendRawToSerialPrinter(tsplCode, 9600);
+      alert('1 Slip Printed Directly to USB Thermal Printer!');
+    } catch (err: any) {
+      if (err.message && !err.message.includes('No printer device was selected')) {
+        alert('USB Print error: ' + err.message);
+      }
+    } finally {
+      setDirectPrinting(false);
+    }
+  };
+
+  const handlePrintDeviceSpooler = async () => {
+    if (!printDevice) return;
+    setDirectPrinting(true);
+    try {
+      const res = await api.print.directTSPL({
+        printerName: '4BARCODE 4B-2054TG',
+        labelSize: '50x25',
+        items: [{
+          name: printDevice.product?.name || 'DEVICE',
+          barcode: printDevice.barcode || printDevice.imei1 || 'DEVICE',
+          price: printDevice.product?.sellingPrice || 0,
+          quantity: 1,
+        }],
+      });
+      alert(res.message || '1 Slip Printed Successfully via Native Hardware TSPL!');
+    } catch (err: any) {
+      const isCloudEnv =
+        err.message?.includes('Render') ||
+        err.message?.includes('Linux') ||
+        err.message?.includes('Windows') ||
+        err.message?.includes('spooler') ||
+        err.message?.includes('ENOENT');
+
+      if (isCloudEnv) {
+        if (confirm(`${err.message}\n\nWould you like to print this sticker using Browser Print instead?`)) {
+          handlePrintDeviceBrowser();
+        }
+      } else {
+        alert('Direct print error: ' + err.message);
+      }
+    } finally {
+      setDirectPrinting(false);
+    }
   };
 
   const handleDeleteDevice = async (device: any) => {
@@ -946,33 +1024,33 @@ export default function DevicesPage() {
               </div>
             </div>
 
-            <div className="pt-2">
+            <div className="pt-2 space-y-2">
               <button
-                disabled={directPrinting}
-                onClick={async () => {
-                  setDirectPrinting(true);
-                  try {
-                    const res = await api.print.directTSPL({
-                      printerName: '4BARCODE 4B-2054TG',
-                      labelSize: '50x25',
-                      items: [{
-                        name: printDevice.product?.name || 'DEVICE',
-                        barcode: printDevice.barcode || printDevice.imei1 || 'DEVICE',
-                        price: printDevice.product?.sellingPrice || 0,
-                        quantity: 1
-                      }]
-                    });
-                    alert(res.message || '1 Slip Printed Successfully via Native Hardware TSPL!');
-                  } catch (err: any) {
-                    alert('Direct print error: ' + err.message);
-                  } finally {
-                    setDirectPrinting(false);
-                  }
-                }}
-                className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-md shadow-emerald-600/30 transition-all cursor-pointer disabled:opacity-50"
+                onClick={handlePrintDeviceBrowser}
+                className="w-full py-3 bg-[#0071e3] hover:bg-blue-600 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-md shadow-blue-600/30 transition-all cursor-pointer"
               >
-                <Zap size={16} /> {directPrinting ? 'Sending to 4BARCODE...' : 'Direct Hardware Print (50 × 25 mm • Zero Dialog)'}
+                <Printer size={16} /> Print Sticker (Browser / Thermal Roll)
               </button>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  disabled={directPrinting}
+                  onClick={handlePrintDeviceUSB}
+                  className="py-2.5 px-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                  title="Direct USB Hardware TSPL (Chrome / Edge / Brave)"
+                >
+                  <Zap size={14} /> Direct USB (TSPL)
+                </button>
+
+                <button
+                  disabled={directPrinting}
+                  onClick={handlePrintDeviceSpooler}
+                  className="py-2.5 px-2 bg-slate-700 hover:bg-slate-600 text-white font-bold text-[11px] rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                  title="Direct Windows Spooler Print (Local Windows Server only)"
+                >
+                  <RefreshCw size={13} className={directPrinting ? 'animate-spin' : ''} /> Local Spooler
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1057,6 +1135,40 @@ export default function DevicesPage() {
             </form>
           </div>
         </div>
+      )}
+      {/* Hidden Portal for Clean Device Sticker Thermal Printing */}
+      {isPrintingPortal && printDevice && typeof document !== 'undefined' && createPortal(
+        <div id="printable-root" className="printable-labels-container">
+          <div className="batch-barcode-sticker">
+            <div className="w-full flex items-center justify-between border-b border-black/20 pb-0.5 leading-none">
+              <span className="text-[8px] font-black text-blue-900 uppercase tracking-wider">CELL POINT</span>
+            </div>
+            <div className="w-full text-[8px] font-bold text-black truncate uppercase tracking-tight my-0.5 leading-tight text-center">
+              {printDevice.product?.name || 'DEVICE'}
+            </div>
+            <div
+              className="w-full flex items-center justify-center my-0.5 overflow-hidden max-h-[14mm]"
+              dangerouslySetInnerHTML={{
+                __html: generateBarcodeSvg({
+                  type: 'code128',
+                  value: printDevice.barcode || printDevice.imei1 || 'DEVICE',
+                  includeText: false,
+                  height: 10,
+                  scale: 1,
+                }),
+              }}
+            />
+            <div className="w-full flex items-center justify-between text-[7px] border-t border-black/20 pt-0.5 leading-none">
+              <span className="font-mono font-semibold text-black truncate max-w-[55%]">
+                {printDevice.customValue || printDevice.product?.customValue || printDevice.barcode}
+              </span>
+              <span className="font-extrabold text-black ml-auto whitespace-nowrap">
+                MRP: ₹{(printDevice.product?.sellingPrice || 0).toLocaleString('en-IN')}
+              </span>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

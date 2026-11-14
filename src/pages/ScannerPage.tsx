@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   ScanBarcode, 
   Smartphone, 
@@ -14,14 +15,17 @@ import {
   VolumeX, 
   History, 
   Search, 
-  ArrowRight,
-  ShieldCheck,
-  Tag,
-  Clock,
-  Printer
+  ArrowRight, 
+  ShieldCheck, 
+  Tag, 
+  Clock, 
+  Printer,
+  RefreshCw
 } from 'lucide-react';
 import { api } from '../services/api';
 import { generateBarcodeSvg } from '../utils/barcodeGenerator';
+import { buildCellPointTSPLJob } from '../utils/tsplBuilder';
+import { sendRawToSerialPrinter } from '../utils/webSerial';
 
 interface ScannerPageProps {
   onNavigate?: (tab: any) => void;
@@ -40,6 +44,7 @@ export default function ScannerPage({ onNavigate }: ScannerPageProps) {
     type: 'DEVICE_UNIT' | 'PRODUCT_CATALOG';
   }>>([]);
   const [directPrinting, setDirectPrinting] = useState(false);
+  const [isPrintingPortal, setIsPrintingPortal] = useState(false);
   const [printSuccessMsg, setPrintSuccessMsg] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -140,7 +145,51 @@ export default function ScannerPage({ onNavigate }: ScannerPageProps) {
     }
   };
 
-  // Direct Hardware TSPL print for the scanned model
+  // Browser Print for the scanned model
+  const handleBrowserPrintScanned = () => {
+    if (!lookupResult?.data) return;
+    setIsPrintingPortal(true);
+    document.body.classList.add('printing-portal');
+    setTimeout(() => {
+      window.print();
+      setIsPrintingPortal(false);
+      document.body.classList.remove('printing-portal');
+    }, 200);
+  };
+
+  // Direct USB WebSerial print for the scanned model
+  const handleWebSerialPrintScanned = async () => {
+    if (!lookupResult?.data) return;
+    const itemData = lookupResult.data;
+    const isDevice = lookupResult.type === 'DEVICE_UNIT';
+    const name = isDevice ? (itemData.product?.name || 'DEVICE') : itemData.name;
+    const barcode = itemData.scannedBarcode || (isDevice ? (itemData.barcode || itemData.imei1) : itemData.barcode);
+    const price = isDevice ? (itemData.product?.sellingPrice || itemData.purchasePrice || 0) : (itemData.sellingPrice || 0);
+
+    setDirectPrinting(true);
+    setPrintSuccessMsg(null);
+    try {
+      const items = [{ name, barcode, price, quantity: 1 }];
+      const tsplCode = buildCellPointTSPLJob(items, {
+        gapMM: 3,
+        labelSize: '50x25',
+        widthMM: 50,
+        heightMM: 25,
+      });
+      await sendRawToSerialPrinter(tsplCode, 9600);
+      setPrintSuccessMsg(`1 Slip Printed via USB for ${barcode}!`);
+      playChime(true);
+    } catch (err: any) {
+      if (err.message && !err.message.includes('No printer device was selected')) {
+        alert('USB Print error: ' + err.message);
+      }
+      playChime(false);
+    } finally {
+      setDirectPrinting(false);
+    }
+  };
+
+  // Direct Hardware TSPL print for the scanned model (Local Spooler)
   const handleDirectPrintScanned = async () => {
     if (!lookupResult?.data) return;
     const itemData = lookupResult.data;
@@ -167,7 +216,20 @@ export default function ScannerPage({ onNavigate }: ScannerPageProps) {
       setPrintSuccessMsg(res.message || `1 Slip Printed for ${barcode} (50 × 25 mm TSPL)!`);
       playChime(true);
     } catch (err: any) {
-      alert('Direct print error: ' + err.message);
+      const isCloudEnv =
+        err.message?.includes('Render') ||
+        err.message?.includes('Linux') ||
+        err.message?.includes('Windows') ||
+        err.message?.includes('spooler') ||
+        err.message?.includes('ENOENT');
+
+      if (isCloudEnv) {
+        if (confirm(`${err.message}\n\nWould you like to print this sticker using Browser Print instead?`)) {
+          handleBrowserPrintScanned();
+        }
+      } else {
+        alert('Direct print error: ' + err.message);
+      }
       playChime(false);
     } finally {
       setDirectPrinting(false);
@@ -498,28 +560,49 @@ export default function ScannerPage({ onNavigate }: ScannerPageProps) {
                 </div>
               </div>
 
-              {/* Action Buttons: 1-Click Hardware Print & POS Billing */}
-              <div className="pt-2 flex items-center gap-3">
-                <button
-                  disabled={directPrinting}
-                  onClick={handleDirectPrintScanned}
-                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs shadow-md shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
-                >
-                  <Zap size={16} />
-                  <span>
-                    {directPrinting ? 'Sending to 4BARCODE Hardware...' : 'Print 50 × 25 mm Thermal Sticker (Direct TSPL)'}
-                  </span>
-                </button>
-
-                {onNavigate && (
+              {/* Action Buttons: Multi-mode Hardware Print & POS Billing */}
+              <div className="pt-2 space-y-2">
+                <div className="flex items-center gap-3">
                   <button
-                    onClick={() => onNavigate('pos')}
-                    className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-xs shadow-md shadow-blue-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    onClick={handleBrowserPrintScanned}
+                    className="flex-1 py-3 bg-[#0071e3] hover:bg-blue-600 text-white rounded-xl font-bold text-xs shadow-md shadow-blue-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
                   >
-                    <span>Open in POS Billing</span>
-                    <ArrowRight size={14} />
+                    <Printer size={16} />
+                    <span>Print 50 × 25 mm Sticker (Browser Print)</span>
                   </button>
-                )}
+
+                  {onNavigate && (
+                    <button
+                      onClick={() => onNavigate('pos')}
+                      className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    >
+                      <span>Open in POS</span>
+                      <ArrowRight size={14} />
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    disabled={directPrinting}
+                    onClick={handleWebSerialPrintScanned}
+                    className="py-2.5 px-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-[11px] shadow-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                    title="Direct USB Hardware TSPL (Chrome / Edge / Brave)"
+                  >
+                    <Zap size={14} />
+                    <span>Direct USB (TSPL)</span>
+                  </button>
+
+                  <button
+                    disabled={directPrinting}
+                    onClick={handleDirectPrintScanned}
+                    className="py-2.5 px-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold text-[11px] shadow-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                    title="Direct Windows Spooler Print (Local Windows Server only)"
+                  >
+                    <RefreshCw size={13} className={directPrinting ? 'animate-spin' : ''} />
+                    <span>Local Spooler</span>
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
@@ -589,6 +672,40 @@ export default function ScannerPage({ onNavigate }: ScannerPageProps) {
           </div>
         </div>
       </div>
+      {/* Hidden Portal for Clean Scanned Sticker Thermal Printing */}
+      {isPrintingPortal && lookupResult?.data && typeof document !== 'undefined' && createPortal(
+        <div id="printable-root" className="printable-labels-container">
+          <div className="batch-barcode-sticker">
+            <div className="w-full flex items-center justify-between border-b border-black/20 pb-0.5 leading-none">
+              <span className="text-[8px] font-black text-blue-900 uppercase tracking-wider">CELL POINT</span>
+            </div>
+            <div className="w-full text-[8px] font-bold text-black truncate uppercase tracking-tight my-0.5 leading-tight text-center">
+              {lookupResult.type === 'DEVICE_UNIT' ? (lookupResult.data.product?.name || 'DEVICE') : lookupResult.data.name}
+            </div>
+            <div
+              className="w-full flex items-center justify-center my-0.5 overflow-hidden max-h-[14mm]"
+              dangerouslySetInnerHTML={{
+                __html: generateBarcodeSvg({
+                  type: 'code128',
+                  value: lookupResult.data.scannedBarcode || (lookupResult.type === 'DEVICE_UNIT' ? (lookupResult.data.barcode || lookupResult.data.imei1) : lookupResult.data.barcode) || '000000',
+                  includeText: false,
+                  height: 10,
+                  scale: 1,
+                }),
+              }}
+            />
+            <div className="w-full flex items-center justify-between text-[7px] border-t border-black/20 pt-0.5 leading-none">
+              <span className="font-mono font-semibold text-black truncate max-w-[55%]">
+                {lookupResult.data.scannedBarcode || (lookupResult.type === 'DEVICE_UNIT' ? (lookupResult.data.barcode || lookupResult.data.imei1) : lookupResult.data.barcode)}
+              </span>
+              <span className="font-extrabold text-black ml-auto whitespace-nowrap">
+                MRP: ₹{(lookupResult.type === 'DEVICE_UNIT' ? (lookupResult.data.product?.sellingPrice || lookupResult.data.purchasePrice || 0) : (lookupResult.data.sellingPrice || 0)).toLocaleString('en-IN')}
+              </span>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

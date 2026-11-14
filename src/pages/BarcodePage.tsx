@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Barcode as BarcodeIcon, 
   CheckSquare, 
@@ -7,10 +8,13 @@ import {
   Sliders, 
   LayoutTemplate,
   RefreshCw,
-  Zap
+  Zap,
+  Printer
 } from 'lucide-react';
 import { api } from '../services/api';
 import { generateBarcodeSvg } from '../utils/barcodeGenerator';
+import { buildCellPointTSPLJob } from '../utils/tsplBuilder';
+import { sendRawToSerialPrinter } from '../utils/webSerial';
 import AppStudio from '../components/BartenderStudio'; // Full WYSIWYG BarTender studio component!
 
 export default function BarcodePage() {
@@ -24,6 +28,7 @@ export default function BarcodePage() {
   const [showBarcodeText, setShowBarcodeText] = useState(true);
   const [uniqueSerialized, setUniqueSerialized] = useState(true); // Every printed sticker gets a unique piece suffix
   const [directPrinting, setDirectPrinting] = useState(false);
+  const [isPrintingPortal, setIsPrintingPortal] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -92,6 +97,44 @@ export default function BarcodePage() {
     });
   });
 
+  const handleBrowserPrint = () => {
+    if (printableLabels.length === 0) return;
+    setIsPrintingPortal(true);
+    document.body.classList.add('printing-portal');
+    setTimeout(() => {
+      window.print();
+      setIsPrintingPortal(false);
+      document.body.classList.remove('printing-portal');
+    }, 200);
+  };
+
+  const handleWebSerialPrint = async () => {
+    if (printableLabels.length === 0) return;
+    setDirectPrinting(true);
+    try {
+      const items = printableLabels.map((p) => ({
+        name: p.name,
+        barcode: p.uniqueBarcode || p.customValue || p.barcode,
+        price: p.sellingPrice || 0,
+        quantity: 1,
+      }));
+      const tsplCode = buildCellPointTSPLJob(items, {
+        gapMM: 3,
+        labelSize,
+        widthMM: 50,
+        heightMM: 25,
+      });
+      await sendRawToSerialPrinter(tsplCode, 9600);
+      alert(`Successfully sent ${items.length} label(s) directly to USB printer!`);
+    } catch (err: any) {
+      if (err.message && !err.message.includes('No printer device was selected')) {
+        alert('USB Print error: ' + err.message);
+      }
+    } finally {
+      setDirectPrinting(false);
+    }
+  };
+
   const handleDirectTSPLPrint = async () => {
     if (printableLabels.length === 0) return;
     setDirectPrinting(true);
@@ -110,7 +153,20 @@ export default function BarcodePage() {
       });
       alert(res.message || `Successfully sent ${items.length} label(s) directly to 4BARCODE printer!`);
     } catch (err: any) {
-      alert('Direct print error: ' + err.message);
+      const isCloudEnv =
+        err.message?.includes('Render') ||
+        err.message?.includes('Linux') ||
+        err.message?.includes('Windows') ||
+        err.message?.includes('spooler') ||
+        err.message?.includes('ENOENT');
+
+      if (isCloudEnv) {
+        if (confirm(`${err.message}\n\nWould you like to print these labels using Browser Print instead?`)) {
+          handleBrowserPrint();
+        }
+      } else {
+        alert('Direct print error: ' + err.message);
+      }
     } finally {
       setDirectPrinting(false);
     }
@@ -277,18 +333,42 @@ export default function BarcodePage() {
                 </label>
               </div>
 
-              <button
-                disabled={printableLabels.length === 0 || directPrinting}
-                onClick={handleDirectTSPLPrint}
-                className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs shadow-md shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all disabled:opacity-40 cursor-pointer"
-              >
-                <Zap size={16} />
-                <span>
-                  {directPrinting
-                    ? 'Sending to 4BARCODE Hardware...'
-                    : `Direct Hardware Print (${printableLabels.length} Slip${printableLabels.length > 1 ? 's' : ''} • Zero Dialog)`}
-                </span>
-              </button>
+              <div className="space-y-2 pt-1">
+                {/* Primary Button: Browser Thermal Print */}
+                <button
+                  disabled={printableLabels.length === 0}
+                  onClick={handleBrowserPrint}
+                  className="w-full py-3 bg-[#0071e3] hover:bg-blue-600 text-white rounded-xl font-bold text-xs shadow-md shadow-blue-600/30 flex items-center justify-center gap-2 transition-all disabled:opacity-40 cursor-pointer"
+                >
+                  <Printer size={16} />
+                  <span>
+                    Print Labels ({printableLabels.length} Sticker{printableLabels.length > 1 ? 's' : ''} • Thermal Roll)
+                  </span>
+                </button>
+
+                {/* Secondary Hardware Options */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    disabled={printableLabels.length === 0 || directPrinting}
+                    onClick={handleWebSerialPrint}
+                    className="py-2.5 px-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-[11px] shadow-sm flex items-center justify-center gap-1.5 transition-all disabled:opacity-40 cursor-pointer"
+                    title="Direct USB Hardware TSPL (Chrome / Edge / Brave)"
+                  >
+                    <Zap size={14} />
+                    <span>Direct USB</span>
+                  </button>
+
+                  <button
+                    disabled={printableLabels.length === 0 || directPrinting}
+                    onClick={handleDirectTSPLPrint}
+                    className="py-2.5 px-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold text-[11px] shadow-sm flex items-center justify-center gap-1.5 transition-all disabled:opacity-40 cursor-pointer"
+                    title="Direct Windows Spooler Print (Local Windows Server only)"
+                  >
+                    <RefreshCw size={13} className={directPrinting ? 'animate-spin' : ''} />
+                    <span>Local Spooler</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -380,6 +460,64 @@ export default function BarcodePage() {
         <div className="flex-1 overflow-hidden relative">
           <AppStudio />
         </div>
+      )}
+
+      {/* Hidden Portal for Clean Thermal Roll Printing */}
+      {isPrintingPortal && typeof document !== 'undefined' && createPortal(
+        <div id="printable-root" className="printable-labels-container">
+          {printableLabels.map((prod, idx) => (
+            <div key={idx} className="batch-barcode-sticker">
+              {/* CELL POINT Brand Header */}
+              <div className="w-full flex items-center justify-between border-b border-black/20 pb-0.5 leading-none">
+                <span className="text-[8px] font-black text-blue-900 uppercase tracking-wider">CELL POINT</span>
+                {prod.isSerialized && (
+                  <span className="text-[6.5px] font-bold px-1 rounded bg-blue-100 text-blue-800">
+                    PIECE #{prod.pieceNumber}
+                  </span>
+                )}
+              </div>
+
+              {/* Device / Product Name */}
+              <div className="w-full text-[8px] font-bold text-black truncate uppercase tracking-tight my-0.5 leading-tight text-center">
+                {prod.name}
+              </div>
+
+              {/* Barcode Vector SVG */}
+              <div
+                className="w-full flex items-center justify-center my-0.5 overflow-hidden max-h-[14mm]"
+                dangerouslySetInnerHTML={{
+                  __html: generateBarcodeSvg({
+                    type: symbology,
+                    value: prod.uniqueBarcode || prod.barcode || '000000',
+                    includeText: false,
+                    height: 10,
+                    scale: 1,
+                  }),
+                }}
+              />
+
+              {/* Footer: Barcode text + Price */}
+              <div className="w-full flex items-center justify-between text-[7px] border-t border-black/20 pt-0.5 leading-none">
+                {showBarcodeText && (
+                  <span className="font-mono font-semibold text-black truncate max-w-[55%]">
+                    {prod.uniqueBarcode || prod.customValue || prod.barcode}
+                  </span>
+                )}
+                {showPrice && (
+                  <span className="font-extrabold text-black ml-auto whitespace-nowrap">
+                    ₹{(prod.sellingPrice || 0).toLocaleString('en-IN')}
+                  </span>
+                )}
+                {!showPrice && !showBarcodeText && (
+                  <span className="text-[6px] text-black uppercase mx-auto">
+                    VERIFIED PIECE
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>,
+        document.body
       )}
     </div>
   );

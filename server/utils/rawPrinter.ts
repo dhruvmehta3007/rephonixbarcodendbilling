@@ -1,5 +1,6 @@
 import { execSync } from 'child_process';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 
 /**
@@ -7,7 +8,14 @@ import path from 'path';
  */
 export function printRawTSPL(printerName: string, tsplCommands: string): { success: boolean; message: string } {
     try {
-        const tempDir = path.resolve(process.env.TEMP || 'C:\\Windows\\Temp');
+        if (process.platform !== 'win32') {
+            return {
+                success: false,
+                message: 'Server-side direct spooler printing is only supported when running locally on Windows. Because this app is hosted in the cloud (Render/Linux), please use "Browser Print" or "WebSerial USB Direct".'
+            };
+        }
+
+        const tempDir = os.tmpdir();
         const tempFile = path.join(tempDir, `print_${Date.now()}.txt`);
         fs.writeFileSync(tempFile, tsplCommands, 'utf8');
 

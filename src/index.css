@@ -64,8 +64,9 @@ body {
     image-rendering: pixelated !important;
   }
 
-  /* Hide entire application shell */
-  #root {
+  /* Hide entire application shell ONLY when portal print container is present */
+  body:has(#printable-root) #root,
+  body.printing-portal #root {
     display: none !important;
   }
 

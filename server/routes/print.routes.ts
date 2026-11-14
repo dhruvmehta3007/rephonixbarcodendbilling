@@ -47,7 +47,7 @@ router.post('/direct-tspl', async (req: Request, res: Response) => {
         totalLabels: items.length,
       });
     } else {
-      return res.status(500).json({
+      return res.status(400).json({
         success: false,
         error: printResult.message,
       });
