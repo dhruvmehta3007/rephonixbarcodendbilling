@@ -54,7 +54,7 @@ export function generateBarcodeSvg({
 
     const is2D = ['qrcode', 'datamatrix', 'pdf417'].includes(type);
 
-    const svg = bwipjs.toSVG({
+    let svg = bwipjs.toSVG({
       bcid: type,
       text: cleanVal,
       scale: is2D ? 3 : scale || 2,
@@ -63,6 +63,13 @@ export function generateBarcodeSvg({
       textxalign: 'center',
       rotate: rotate || 'N',
     });
+
+    // Enforce uniform aspect ratio so barcode graphics are never stretched or compressed
+    if (!svg.includes('preserveAspectRatio')) {
+      svg = svg.replace('<svg ', '<svg preserveAspectRatio="xMidYMid meet" style="max-width:100%;max-height:100%;object-fit:contain;" ');
+    } else {
+      svg = svg.replace('<svg ', '<svg style="max-width:100%;max-height:100%;object-fit:contain;" ');
+    }
 
     svgCache.set(cacheKey, svg);
     return svg;

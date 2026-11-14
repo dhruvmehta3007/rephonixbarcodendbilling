@@ -1,16 +1,19 @@
+import { PRINTER_CONFIG, DOTS_PER_MM } from '../constants/printerConfig';
+
 /**
  * TSPL / TSPL2 (TSC / TVS / Xprinter / Godex Programming Language)
  * Machine code generator for direct thermal printing.
+ * Calibrated for 203 DPI (40mm x 20mm, 320x160 dots landscape)
  */
 
-export function generateTSPL(label, elements, options = {}) {
-  const dpi = options.dpi || label.dpi || 203;
-  const dpmm = dpi / 25.4;
+export function generateTSPL(label = {}, elements = [], options = {}) {
+  const dpi = options.dpi || label.dpi || PRINTER_CONFIG.dpi;
+  const dpmm = DOTS_PER_MM || (dpi / 25.4); // 8 dots per mm for 203 DPI
 
   const mmToDots = (mm) => Math.round((Number(mm) || 0) * dpmm);
 
-  const w_mm = Number(label.width) || 50;
-  const h_mm = Number(label.height) || 30;
+  const w_mm = Number(label.width) || PRINTER_CONFIG.widthMM;
+  const h_mm = Number(label.height) || PRINTER_CONFIG.heightMM;
 
   const commands = [
     `SIZE ${w_mm} mm, ${h_mm} mm`,

@@ -14,6 +14,8 @@ import {
   Sparkles
 } from 'lucide-react';
 
+import { PRINTER_CONFIG } from '../constants/printerConfig';
+
 export default function Header({
   label,
   setLabel,
@@ -32,6 +34,8 @@ export default function Header({
   sampleDataCount,
 }) {
   const quickSizes = [
+    { label: 'CellPoint Standard (30x15 mm)', w: PRINTER_CONFIG.widthMM, h: PRINTER_CONFIG.heightMM },
+    { label: 'CellPoint Compact (40x20 mm)', w: 40, h: 20 },
     { label: 'Mobile IMEI (50x30 mm)', w: 50, h: 30 },
     { label: 'Retail Tag (50x25 mm)', w: 50, h: 25 },
     { label: 'Shipping Box (100x150 mm)', w: 100, h: 150 },

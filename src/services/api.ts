@@ -145,4 +145,10 @@ export const api = {
     markSold: (id: string, data: any = {}) => request(`/devices/${id}/mark-sold`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string) => request(`/devices/${id}`, { method: 'DELETE' }),
   },
+
+  // Hardware Direct TSPL Printing
+  print: {
+    directTSPL: (data: { items: any[]; printerName?: string; gapMM?: number; labelSize?: string; widthMM?: number; heightMM?: number }) =>
+      request('/print/direct-tspl', { method: 'POST', body: JSON.stringify(data) }),
+  },
 };

@@ -9,20 +9,24 @@ import PrintPreviewModal from './PrintPreviewModal';
 import TemplatesModal from './TemplatesModal';
 import { DEFAULT_TEMPLATES } from '../constants/templates';
 import { generateBarcodeSvg } from '../utils/barcodeGenerator';
+import { PRINTER_CONFIG, clampElementMm } from '../constants/printerConfig';
+import { renderLabelToRasterDataUrl } from '../utils/rasterGenerator';
 import confetti from 'canvas-confetti';
 
-const INITIAL_TEMPLATE = DEFAULT_TEMPLATES[0]; // Rephonix Mobile IMEI (50x30 mm)
+const INITIAL_TEMPLATE = DEFAULT_TEMPLATES[0]; // CellPoint Standard (30x15 mm / 240x120 Dots)
 
 export default function App() {
-  // Label Media Setup
+  // Label Media Setup - Calibrated for 203 DPI (30mm x 15mm, 240x120 dots)
   const [label, setLabel] = useState({
-    width: INITIAL_TEMPLATE.width,
-    height: INITIAL_TEMPLATE.height,
-    dpi: INITIAL_TEMPLATE.dpi || 203,
-    borderRadius: 1.5,
+    width: PRINTER_CONFIG.widthMM,
+    height: PRINTER_CONFIG.heightMM,
+    dpi: PRINTER_CONFIG.dpi,
+    widthDots: PRINTER_CONFIG.widthDots,
+    heightDots: PRINTER_CONFIG.heightDots,
+    borderRadius: 0.8,
   });
 
-  const [selectedPreset, setSelectedPreset] = useState('Mobile IMEI (50x30 mm)');
+  const [selectedPreset, setSelectedPreset] = useState('CellPoint Standard (30x15 mm)');
 
   // Elements on the Canvas
   const [elements, setElements] = useState(INITIAL_TEMPLATE.elements);
@@ -99,30 +103,31 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleUndo, handleRedo]);
 
-  // Update Element
+  // Update Element (Constrained strictly to label dot boundary)
   const handleUpdateElement = (id, updatesOrFn) => {
     setElements((prev) => {
       const next = prev.map((el) => {
         if (el.id !== id) return el;
         const updates = typeof updatesOrFn === 'function' ? updatesOrFn(el) : updatesOrFn;
-        return { ...el, ...updates };
+        const merged = { ...el, ...updates };
+        return clampElementMm(merged, label.width, label.height);
       });
       pushHistory(next);
       return next;
     });
   };
 
-  // Add Element from Toolbar
+  // Add Element from Toolbar (Constrained inside boundary)
   const handleAddElement = (newElProps) => {
     const id = `el_${Date.now()}`;
-    const newEl = {
+    const newEl = clampElementMm({
       id,
-      x: 4,
-      y: 4,
+      x: 2,
+      y: 2,
       rotation: 0,
       visible: true,
       ...newElProps,
-    };
+    }, label.width, label.height);
     const next = [...elements, newEl];
     setElements(next);
     setSelectedId(id);
@@ -237,7 +242,7 @@ export default function App() {
   };
 
   // Direct Hardware Thermal Print Execution
-  const handleTriggerDirectPrint = ({ printMode, copiesPerLabel = 1 }) => {
+  const handleTriggerDirectPrint = async ({ printMode, copiesPerLabel = 1, useRaster = false }) => {
     // Generate records to print
     let records = [];
     if (printMode === 'all' && batchData.length > 0) {
@@ -254,7 +259,17 @@ export default function App() {
       }
     }
 
-    setPrintQueue(fullQueue);
+    if (useRaster) {
+      const rasterQueue = await Promise.all(
+        fullQueue.map(async (rec) => {
+          const rasterDataUrl = await renderLabelToRasterDataUrl(label, elements, rec);
+          return { ...rec, _rasterDataUrl: rasterDataUrl };
+        })
+      );
+      setPrintQueue(rasterQueue);
+    } else {
+      setPrintQueue(fullQueue);
+    }
 
     // Dynamic @page size injection
     let styleTag = document.getElementById('rephonix-dynamic-page-size');
@@ -264,11 +279,43 @@ export default function App() {
       document.head.appendChild(styleTag);
     }
 
-    // Exact millimeter page dimensions for thermal printers
+    // Exact millimeter page dimensions for thermal printers - strictly landscape 40x20mm
     styleTag.innerHTML = `
       @page {
-        size: ${label.width}mm ${label.height}mm;
-        margin: 0mm;
+        size: ${label.width}mm ${label.height}mm landscape;
+        margin: 0mm !important;
+      }
+      @media print {
+        html, body {
+          width: ${label.width}mm !important;
+          height: ${label.height}mm !important;
+          max-width: ${label.width}mm !important;
+          max-height: ${label.height}mm !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow: hidden !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        .printable-area {
+          display: block !important;
+          width: ${label.width}mm !important;
+          height: ${label.height}mm !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        .print-page-label {
+          width: ${label.width}mm !important;
+          height: ${label.height}mm !important;
+          max-width: ${label.width}mm !important;
+          max-height: ${label.height}mm !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          box-sizing: border-box !important;
+          page-break-after: always !important;
+          break-after: page !important;
+          overflow: hidden !important;
+        }
       }
     `;
 
@@ -396,16 +443,34 @@ export default function App() {
               overflow: 'hidden',
               pageBreakAfter: 'always',
               breakAfter: 'page',
+              margin: 0,
+              padding: 0,
+              boxSizing: 'border-box',
             }}
           >
-            {elements.map((el) => {
-              if (el.visible === false) return null;
-              const contentSubstituted = substitute(el.content, rec);
+            {rec._rasterDataUrl ? (
+              <img
+                src={rec._rasterDataUrl}
+                alt="1:1 Printer Dot Label"
+                style={{
+                  width: `${label.width}mm`,
+                  height: `${label.height}mm`,
+                  display: 'block',
+                  margin: 0,
+                  padding: 0,
+                  objectFit: 'contain',
+                  imageRendering: 'pixelated',
+                }}
+              />
+            ) : (
+              elements.map((el) => {
+                if (el.visible === false) return null;
+                const contentSubstituted = substitute(el.content, rec);
 
-              return (
-                <div
-                  key={el.id}
-                  style={{
+                return (
+                  <div
+                    key={el.id}
+                    style={{
                     position: 'absolute',
                     left: `${el.x}mm`,
                     top: `${el.y}mm`,
@@ -542,7 +607,7 @@ export default function App() {
                   )}
                 </div>
               );
-            })}
+            }))}
           </div>
         ))}
       </div>

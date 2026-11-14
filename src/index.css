@@ -36,11 +36,17 @@ body {
   background: rgba(0, 0, 0, 0.28);
 }
 
-/* Print Media Styling: Calibrated for 50mm x 25mm Direct Thermal Roll on 4BARCODE 4B-2054TG */
+/* Print Media Styling: Strict 1-Slip 50mm x 25mm Direct Thermal Roll (203 DPI, 400x200 dots) */
 @media print {
   @page {
-    margin: 0 !important;
-    size: 50mm 25mm landscape !important;
+    size: 50mm 25mm;
+    margin: 0;
+  }
+
+  *, *::before, *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-sizing: border-box !important;
   }
 
   body, html {
@@ -49,85 +55,61 @@ body {
     margin: 0 !important;
     padding: 0 !important;
     width: 50mm !important;
-    height: 25mm !important;
-    max-height: 25mm !important;
-    overflow: hidden !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
   }
 
   /* Force crisp thermal rendering */
-  svg, img {
+  svg, img, canvas {
     shape-rendering: crispEdges !important;
     image-rendering: pixelated !important;
   }
 
-  /* Hide entire application shell and non-printable elements */
-  body * {
-    visibility: hidden !important;
+  /* Hide entire application shell */
+  #root {
+    display: none !important;
   }
 
   .no-print,
   .no-print * {
     display: none !important;
-    visibility: hidden !important;
   }
 
-  /* Make ONLY designated print elements visible */
-  .printable-label,
-  .printable-label *,
-  .printable-area,
-  .printable-area *,
-  .print-only,
-  .print-only * {
-    visibility: visible !important;
-  }
-
-  /* Single Barcode Sticker Print Mode (50mm width x 25mm height roll) */
-  .printable-label {
-    position: fixed !important;
-    left: 0 !important;
-    top: 0 !important;
-    width: 48mm !important;
-    height: 23mm !important;
-    max-width: 48mm !important;
-    max-height: 23mm !important;
-    margin: 1mm auto !important;
-    padding: 0.8mm 1.5mm !important;
-    background: #ffffff !important;
-    color: #000000 !important;
-    box-shadow: none !important;
-    border: none !important;
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    box-sizing: border-box !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    page-break-after: avoid !important;
-    break-after: avoid !important;
-    overflow: hidden !important;
-  }
-
-  /* Batch Thermal Roll / Barcode Studio Print Mode */
-  .printable-labels-container {
-    visibility: visible !important;
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
-    width: 50mm !important;
+  /* Print containers portaled to document.body */
+  #printable-root,
+  .printable-area {
     display: block !important;
+    position: static !important;
     margin: 0 !important;
     padding: 0 !important;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
+    background: #ffffff !important;
   }
 
-  .printable-labels-container .batch-barcode-sticker {
-    visibility: visible !important;
+  /* Each label = one page on the thermal roll */
+  .print-page-label {
+    width: 50mm !important;
+    max-width: 50mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    background: #ffffff !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  .print-page-label:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+
+  /* Single sticker from DevicesPage */
+  .printable-label {
     display: flex !important;
     flex-direction: column !important;
     justify-content: space-between !important;
@@ -137,26 +119,62 @@ body {
     max-width: 50mm !important;
     max-height: 25mm !important;
     margin: 0 !important;
-    padding: 1.2mm 2mm !important;
+    padding: 0.5mm 1mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  /* Batch Thermal Roll / Barcode Studio Print Mode */
+  .printable-labels-container {
+    display: block !important;
+    position: static !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .printable-labels-container *,
+  .printable-label * {
+    visibility: visible !important;
+  }
+
+  .printable-labels-container .batch-barcode-sticker {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 50mm !important;
+    height: 25mm !important;
+    max-width: 50mm !important;
+    max-height: 25mm !important;
+    margin: 0 !important;
+    padding: 0.5mm 1mm !important;
     background: #ffffff !important;
     border: none !important;
     box-shadow: none !important;
     box-sizing: border-box !important;
+    overflow: hidden !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
     page-break-after: always !important;
     break-after: page !important;
-    overflow: hidden !important;
   }
 
-  .printable-labels-container .batch-barcode-sticker * {
-    visibility: visible !important;
+  .printable-labels-container .batch-barcode-sticker:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
   }
 
   /* POS / Sales Receipt Print Mode */
   .print-only {
     display: block !important;
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
+    position: static !important;
     width: 72mm !important;
     max-width: 80mm !important;
     margin: 0 auto !important;

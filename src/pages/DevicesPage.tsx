@@ -17,7 +17,8 @@ import {
   Trash2,
   Info,
   Layers,
-  ArrowRight
+  ArrowRight,
+  Zap
 } from 'lucide-react';
 import { api } from '../services/api';
 import { generateBarcodeSvg } from '../utils/barcodeGenerator';
@@ -58,6 +59,7 @@ export default function DevicesPage() {
 
   // Quick Print Modal for a device sticker
   const [printDevice, setPrintDevice] = useState<any>(null);
+  const [directPrinting, setDirectPrinting] = useState(false);
 
   // Mark Sold Modal
   const [sellingDevice, setSellingDevice] = useState<any>(null);
@@ -897,28 +899,30 @@ export default function DevicesPage() {
               </button>
             </div>
 
-            {/* Sticker Preview Box: CELL POINT Branding + Device Name + Barcode + MRP (Thermal roll label) */}
+            {/* Sticker Preview Box: CELL POINT Branding + Device Name + Barcode + MRP (Thermal roll label 30x15 mm, 2:1 aspect ratio) */}
             <div 
-              className="printable-label my-6 p-2 bg-white text-black rounded-lg shadow-xl text-center font-sans border border-gray-300 mx-auto flex flex-col justify-between"
+              className="printable-label my-4 p-1.5 bg-white text-black rounded-lg shadow-xl text-center font-sans border border-gray-300 mx-auto flex flex-col justify-between"
               style={{
                 width: '100%',
-                maxWidth: '320px',
-                aspectRatio: '50/25',
+                maxWidth: '240px',
+                aspectRatio: '30/15',
+                boxSizing: 'border-box',
+                overflow: 'hidden',
               }}
             >
-              {/* Header: CELL POINT + VERIFIED */}
-              <div className="w-full flex items-center justify-between border-b border-gray-800 pb-0.5 px-0.5 shrink-0">
-                <span className="font-black text-[11px] tracking-wider text-blue-900 uppercase">CELL POINT</span>
-                <span className="text-[8px] text-gray-700 font-bold uppercase tracking-wide">VERIFIED DEVICE</span>
+              {/* Header: CELL POINT */}
+              <div className="w-full flex items-center justify-between border-b border-gray-300 pb-0.5 px-0.5 shrink-0">
+                <span className="font-extrabold text-[8px] tracking-wider text-blue-900 uppercase">CELL POINT</span>
+                <span className="text-[6.5px] text-gray-600 font-bold uppercase tracking-tight">VERIFIED</span>
               </div>
 
               {/* Product / Device Name */}
-              <div className="w-full font-black text-[11px] text-gray-950 uppercase leading-snug tracking-tight px-0.5 py-0.5 shrink-0 truncate">
+              <div className="w-full font-bold text-[7.5px] text-gray-950 uppercase leading-tight tracking-tight px-0.5 py-0.5 shrink-0 truncate">
                 {printDevice.product?.name}
               </div>
 
-              {/* Barcode Vector - Clean, Centered, High Contrast */}
-              <div className="w-full flex justify-center items-center overflow-hidden my-0.5 flex-1 max-h-[11mm]">
+              {/* Barcode Vector - Clean, Centered, High Contrast (Scale 1 for 30x15mm) */}
+              <div className="w-full flex justify-center items-center overflow-hidden my-0.5 flex-1 max-h-[7mm]">
                 <div
                   className="w-full flex justify-center items-center"
                   dangerouslySetInnerHTML={{
@@ -926,7 +930,7 @@ export default function DevicesPage() {
                       type: 'code128',
                       value: printDevice.barcode || printDevice.imei1 || 'DEVICE',
                       height: 10,
-                      scale: 1.35,
+                      scale: 1,
                       includeText: false,
                     }),
                   }}
@@ -934,22 +938,40 @@ export default function DevicesPage() {
               </div>
 
               {/* Footer: Barcode Number + MRP Price (Full Width, No Cutoff) */}
-              <div className="w-full flex items-center justify-between border-t border-gray-800 pt-0.5 px-0.5 shrink-0 font-mono text-[9px] font-bold text-gray-950">
-                <span className="tracking-wider">{printDevice.customValue || printDevice.product?.customValue || printDevice.barcode}</span>
-                <span className="font-black text-[11px] text-gray-950 ml-auto whitespace-nowrap">
+              <div className="w-full flex items-center justify-between border-t border-gray-300 pt-0.5 px-0.5 shrink-0 font-mono text-[7px] font-bold text-gray-950">
+                <span className="tracking-tight truncate max-w-[50%]">{printDevice.customValue || printDevice.product?.customValue || printDevice.barcode}</span>
+                <span className="font-extrabold text-[7.5px] text-gray-950 ml-auto whitespace-nowrap">
                   MRP: ₹{(printDevice.product?.sellingPrice || 0).toLocaleString('en-IN')}
                 </span>
               </div>
             </div>
 
-            <div className="flex justify-end gap-3">
+            <div className="pt-2">
               <button
-                onClick={() => {
-                  window.print();
+                disabled={directPrinting}
+                onClick={async () => {
+                  setDirectPrinting(true);
+                  try {
+                    const res = await api.print.directTSPL({
+                      printerName: '4BARCODE 4B-2054TG',
+                      labelSize: '50x25',
+                      items: [{
+                        name: printDevice.product?.name || 'DEVICE',
+                        barcode: printDevice.barcode || printDevice.imei1 || 'DEVICE',
+                        price: printDevice.product?.sellingPrice || 0,
+                        quantity: 1
+                      }]
+                    });
+                    alert(res.message || '1 Slip Printed Successfully via Native Hardware TSPL!');
+                  } catch (err: any) {
+                    alert('Direct print error: ' + err.message);
+                  } finally {
+                    setDirectPrinting(false);
+                  }
                 }}
-                className="w-full py-2.5 bg-[#0071e3] hover:bg-blue-500 text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-2"
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-md shadow-emerald-600/30 transition-all cursor-pointer disabled:opacity-50"
               >
-                <Printer size={15} /> Send to Label Printer
+                <Zap size={16} /> {directPrinting ? 'Sending to 4BARCODE...' : 'Direct Hardware Print (50 × 25 mm • Zero Dialog)'}
               </button>
             </div>
           </div>

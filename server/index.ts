@@ -14,6 +14,7 @@ import reportsRoutes from './routes/reports.routes';
 import settingsRoutes from './routes/settings.routes';
 import usersRoutes from './routes/users.routes';
 import deviceRoutes from './routes/device.routes';
+import printRoutes from './routes/print.routes';
 
 dotenv.config();
 
@@ -49,6 +50,7 @@ app.use('/api/reports', reportsRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/devices', deviceRoutes);
+app.use('/api/print', printRoutes);
 
 // Global Error Handler
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {

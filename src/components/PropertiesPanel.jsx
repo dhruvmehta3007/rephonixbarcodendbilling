@@ -18,6 +18,7 @@ import {
   RotateCw
 } from 'lucide-react';
 import { BARCODE_TYPES } from '../utils/barcodeGenerator';
+import { PRINTER_CONFIG, DOTS_PER_MM } from '../constants/printerConfig';
 
 export default function PropertiesPanel({
   label,
@@ -188,45 +189,64 @@ export default function PropertiesPanel({
                   <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>TRANSFORM (MM)</span>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '6px' }}>
                     <div>
-                      <label style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>X Position</label>
+                      <label style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                        X (mm) • {Math.round(selectedEl.x * 8)} dots
+                      </label>
                       <input
                         type="number"
                         step="0.5"
+                        min="0"
+                        max={Math.max(0, label.width - selectedEl.width)}
                         className="input-field"
                         value={selectedEl.x}
                         onChange={(e) => onUpdateElement(selectedId, { x: Number(e.target.value) })}
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Y Position</label>
+                      <label style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                        Y (mm) • {Math.round(selectedEl.y * 8)} dots
+                      </label>
                       <input
                         type="number"
                         step="0.5"
+                        min="0"
+                        max={Math.max(0, label.height - selectedEl.height)}
                         className="input-field"
                         value={selectedEl.y}
                         onChange={(e) => onUpdateElement(selectedId, { y: Number(e.target.value) })}
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Width</label>
+                      <label style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                        Width (mm) • {Math.round(selectedEl.width * 8)} dots
+                      </label>
                       <input
                         type="number"
                         step="0.5"
+                        min="1"
+                        max={Math.max(1, label.width - selectedEl.x)}
                         className="input-field"
                         value={selectedEl.width}
                         onChange={(e) => onUpdateElement(selectedId, { width: Number(e.target.value) })}
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Height</label>
+                      <label style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                        Height (mm) • {Math.round(selectedEl.height * 8)} dots
+                      </label>
                       <input
                         type="number"
                         step="0.5"
+                        min="1"
+                        max={Math.max(1, label.height - selectedEl.y)}
                         className="input-field"
                         value={selectedEl.height}
                         onChange={(e) => onUpdateElement(selectedId, { height: Number(e.target.value) })}
                       />
                     </div>
+                  </div>
+                  <div style={{ marginTop: '6px', fontSize: '10px', color: '#60a5fa', fontFamily: 'var(--font-mono)' }}>
+                    Boundary: [0, 0] to [{Math.round(label.width * 8)}, {Math.round(label.height * 8)}] dots ({label.width} × {label.height} mm)
                   </div>
                 </div>
 
@@ -552,11 +572,22 @@ export default function PropertiesPanel({
         {/* ================= LABEL SETUP TAB ================= */}
         {activeTab === 'label' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>PHYSICAL LABEL MEDIA</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>PHYSICAL LABEL MEDIA</span>
+              <span style={{ fontSize: '10px', background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                2:1 Aspect Ratio
+              </span>
+            </div>
+
+            <div style={{ padding: '8px 10px', background: 'rgba(59, 130, 246, 0.08)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', fontSize: '11px', color: 'var(--text-secondary)' }}>
+              <strong style={{ color: '#ffffff' }}>Confirmed Printer Specs:</strong> 203 DPI, 30 × 15 mm, 240 × 120 Dots (Landscape).
+            </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               <div>
-                <label style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Width (mm)</label>
+                <label style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                  Width (mm) • {Math.round(label.width * (label.dpi || 203) / 25.4)} dots
+                </label>
                 <input
                   type="number"
                   step="1"
@@ -566,7 +597,9 @@ export default function PropertiesPanel({
                 />
               </div>
               <div>
-                <label style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Height (mm)</label>
+                <label style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                  Height (mm) • {Math.round(label.height * (label.dpi || 203) / 25.4)} dots
+                </label>
                 <input
                   type="number"
                   step="1"
@@ -583,7 +616,7 @@ export default function PropertiesPanel({
                 type="number"
                 step="0.5"
                 className="input-field"
-                value={label.borderRadius || 2}
+                value={label.borderRadius || 1}
                 onChange={(e) => setLabel((p) => ({ ...p, borderRadius: Number(e.target.value) }))}
               />
             </div>
@@ -595,7 +628,7 @@ export default function PropertiesPanel({
                 value={label.dpi || 203}
                 onChange={(e) => setLabel((p) => ({ ...p, dpi: Number(e.target.value) }))}
               >
-                <option value={203}>203 DPI (Standard Zebra / TSC / TVS)</option>
+                <option value={203}>203 DPI (Confirmed Printer Spec - 8 dots/mm)</option>
                 <option value={300}>300 DPI (High Definition)</option>
                 <option value={600}>600 DPI (Micro PCB / Electronics)</option>
               </select>

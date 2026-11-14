@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Barcode as BarcodeIcon, 
-  Printer, 
-  Download, 
   CheckSquare, 
   Square, 
   Layers, 
   Sliders, 
   LayoutTemplate,
-  RefreshCw
+  RefreshCw,
+  Zap
 } from 'lucide-react';
 import { api } from '../services/api';
 import { generateBarcodeSvg } from '../utils/barcodeGenerator';
@@ -20,9 +19,10 @@ export default function BarcodePage() {
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [symbology, setSymbology] = useState<'code128' | 'ean13'>('code128');
-  const [labelSize, setLabelSize] = useState<'50x25' | '40x20' | '20x40' | '50x30'>('50x25');
+  const [labelSize, setLabelSize] = useState<'30x15' | '40x20' | '50x25' | '20x40' | '50x30'>('50x25');
   const [showPrice, setShowPrice] = useState(true); // Default to showing MRP / selling price
   const [showBarcodeText, setShowBarcodeText] = useState(true);
+  const [directPrinting, setDirectPrinting] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -74,8 +74,28 @@ export default function BarcodePage() {
     return Array(count).fill(prod);
   });
 
-  const handlePrintLabels = () => {
-    window.print();
+  const handleDirectTSPLPrint = async () => {
+    if (printableLabels.length === 0) return;
+    setDirectPrinting(true);
+    try {
+      const items = printableLabels.map((p) => ({
+        name: p.name,
+        barcode: p.customValue || p.barcode,
+        price: p.sellingPrice || 0,
+        quantity: 1,
+      }));
+      const res = await api.print.directTSPL({
+        printerName: '4BARCODE 4B-2054TG',
+        items,
+        gapMM: 3,
+        labelSize,
+      });
+      alert(res.message || `Successfully sent ${items.length} label(s) directly to 4BARCODE printer!`);
+    } catch (err: any) {
+      alert('Direct print error: ' + err.message);
+    } finally {
+      setDirectPrinting(false);
+    }
   };
 
   return (
@@ -203,12 +223,13 @@ export default function BarcodePage() {
                   <select
                     value={labelSize}
                     onChange={(e) => setLabelSize(e.target.value as any)}
-                    className="w-full bg-white border border-black/[0.08] rounded-lg px-2 py-1 text-[#1d1d1f] text-xs"
+                    className="w-full bg-white border border-black/[0.08] rounded-lg px-2 py-1 text-[#1d1d1f] text-xs font-semibold"
                   >
-                    <option value="50x25">50 × 25 mm (Standard 2"x1" Thermal Roll)</option>
-                    <option value="40x20">40 × 20 mm (Compact)</option>
-                    <option value="50x25">50 × 25 mm</option>
+                    <option value="50x25">50 × 25 mm (Confirmed Spec • 400×200 Dots @ 203 DPI)</option>
+                    <option value="30x15">30 × 15 mm (240×120 Dots)</option>
+                    <option value="40x20">40 × 20 mm (320×160 Dots)</option>
                     <option value="50x30">50 × 30 mm</option>
+                    <option value="20x40">20 × 40 mm (Portrait)</option>
                   </select>
                 </div>
               </div>
@@ -225,12 +246,16 @@ export default function BarcodePage() {
               </div>
 
               <button
-                disabled={printableLabels.length === 0}
-                onClick={handlePrintLabels}
-                className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-[#1d1d1f] rounded-xl font-bold text-sm shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 transition-all disabled:opacity-40"
+                disabled={printableLabels.length === 0 || directPrinting}
+                onClick={handleDirectTSPLPrint}
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs shadow-md shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all disabled:opacity-40 cursor-pointer"
               >
-                <Printer size={16} />
-                <span>Print {printableLabels.length} Label(s)</span>
+                <Zap size={16} />
+                <span>
+                  {directPrinting
+                    ? 'Sending to 4BARCODE Hardware...'
+                    : `Direct Hardware Print (${printableLabels.length} Slip${printableLabels.length > 1 ? 's' : ''} • Zero Dialog)`}
+                </span>
               </button>
             </div>
           </div>
@@ -250,45 +275,60 @@ export default function BarcodePage() {
                   Select products on the left to generate barcode preview stickers.
                 </div>
               ) : (
-                <div className="printable-labels-container grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4 bg-white border border-black/[0.08] rounded-2xl">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4 bg-white border border-black/[0.08] rounded-2xl no-print">
                   {printableLabels.map((prod, idx) => (
                     <div
                       key={idx}
-                      className="batch-barcode-sticker p-3 bg-white text-black rounded-lg shadow-md flex flex-col justify-between items-center text-center select-none"
+                      className="p-2 bg-white text-black rounded-lg shadow-sm border border-gray-200 flex flex-col justify-between items-center text-center select-none"
                       style={{
                         width: '100%',
                         maxWidth: labelSize === '20x40' ? '180px' : 'none',
-                        aspectRatio: labelSize === '20x40' ? '20/40' : labelSize === '40x20' ? '40/20' : labelSize === '50x30' ? '50/30' : '50/25',
+                        aspectRatio: labelSize === '20x40' ? '20/40' : labelSize === '30x15' ? '30/15' : labelSize === '40x20' ? '40/20' : labelSize === '50x30' ? '50/30' : '50/25',
+                        boxSizing: 'border-box',
+                        overflow: 'hidden',
                       }}
                     >
                       {/* CELL POINT Brand Header */}
-                      <div className="w-full text-[8px] font-black text-blue-900 uppercase tracking-widest border-b border-gray-200 pb-0.5">
+                      <div className="w-full text-[8px] font-black text-blue-900 uppercase tracking-wider border-b border-gray-200 pb-0.5 leading-none">
                         CELL POINT
                       </div>
 
-                      {/* Device Name */}
-                      <div className="w-full text-[10px] font-black text-gray-950 truncate uppercase tracking-tight my-0.5">
+                      {/* Device / Product Name */}
+                      <div className="w-full text-[8px] font-bold text-gray-950 truncate uppercase tracking-tight my-0.5 leading-tight">
                         {prod.name}
                       </div>
 
                       {/* Barcode Vector SVG */}
                       <div
-                        className="w-full flex items-center justify-center my-0.5 overflow-hidden max-h-[7mm]"
+                        className="w-full flex items-center justify-center my-0.5 overflow-hidden max-h-[14mm]"
                         dangerouslySetInnerHTML={{
                           __html: generateBarcodeSvg({
                             type: symbology,
                             value: prod.barcode || '000000',
                             includeText: false,
-                            height: 6,
-                            scale: 1.1,
+                            height: 10,
+                            scale: 1,
                           }),
                         }}
                       />
 
-                      <div className="w-full flex items-center justify-between text-[7px] font-mono font-bold text-gray-700 pt-0.5 border-t border-gray-200">
-                        {showBarcodeText && <span>{prod.customValue ? prod.customValue : prod.barcode}</span>}
-                        {showPrice && <span className="text-[9px] font-extrabold text-gray-900 ml-auto">MRP: ₹{prod.sellingPrice?.toLocaleString('en-IN') || 0}</span>}
-                        {!showPrice && <span className="text-[7px] text-gray-500 uppercase tracking-wider ml-auto">VERIFIED PIECE</span>}
+                      {/* Footer: Barcode text + Price */}
+                      <div className="w-full flex items-center justify-between text-[7px] border-t border-gray-200 pt-0.5 leading-none">
+                        {showBarcodeText && (
+                          <span className="font-mono font-semibold text-gray-700 truncate max-w-[55%]">
+                            {prod.customValue ? prod.customValue : prod.barcode}
+                          </span>
+                        )}
+                        {showPrice && (
+                          <span className="font-extrabold text-gray-950 ml-auto whitespace-nowrap">
+                            ₹{(prod.sellingPrice || 0).toLocaleString('en-IN')}
+                          </span>
+                        )}
+                        {!showPrice && !showBarcodeText && (
+                          <span className="text-[6px] text-gray-500 uppercase mx-auto">
+                            VERIFIED PIECE
+                          </span>
+                        )}
                       </div>
                     </div>
                   ))}

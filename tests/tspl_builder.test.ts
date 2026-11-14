@@ -1,0 +1,69 @@
+import { describe, it, expect } from 'vitest';
+import { buildCellPointTSPL, buildCellPointTSPLJob } from '../server/utils/tsplBuilder';
+
+describe('TSPL Builder Specifications (50x25mm & 30x15mm @ 203 DPI)', () => {
+  it('should generate authoritative 50mm x 25mm TSPL by default with 400x200 dots layout', () => {
+    const tspl = buildCellPointTSPL({
+      name: 'Test Product',
+      barcode: '890123456789',
+      price: 999,
+      quantity: 1,
+    });
+
+    expect(tspl).toContain('SIZE 50 mm, 25 mm\r\n');
+    expect(tspl).toContain('GAP 3 mm, 0 mm\r\n');
+    expect(tspl).toContain('DIRECTION 1\r\n');
+    expect(tspl).toContain('CLS\r\n');
+    expect(tspl).toContain('BARCODE 30,62,"128",65,0,0,2,4,"890123456789"\r\n');
+    expect(tspl).toContain('PRINT 1,1\r\n');
+  });
+
+  it('should support 30x15mm when specified', () => {
+    const tspl = buildCellPointTSPL({
+      name: 'Test Product',
+      barcode: '890123456789',
+      price: 999,
+      quantity: 1,
+      labelSize: '30x15',
+    });
+
+    expect(tspl).toContain('SIZE 30 mm, 15 mm\r\n');
+    expect(tspl).toContain('GAP 3 mm, 0 mm\r\n');
+    expect(tspl).toContain('BARCODE 16,34,"128",30,0,0,2,4,"890123456789"\r\n');
+    expect(tspl).toContain('PRINT 1,1\r\n');
+  });
+
+  it('should right-align the price and format as integer rupees on 50x25mm', () => {
+    const tspl = buildCellPointTSPL({
+      name: 'Samsung Galaxy S23 256GB Phantom Black',
+      barcode: '8806094772019',
+      price: 56999,
+    });
+
+    expect(tspl).toContain('Rs.56999');
+    expect(tspl).toContain('TEXT 256,144,"3",0,1,1,"Rs.56999"');
+  });
+
+  it('should declare SIZE and GAP ONCE globally when printing multiple items in a batch job', () => {
+    const tspl = buildCellPointTSPLJob([
+      { name: 'Item 1', barcode: 'CPB111', price: 100 },
+      { name: 'Item 2', barcode: 'CPB222', price: 200 },
+    ]);
+
+    // SIZE must appear exactly ONCE
+    const sizeMatches = tspl.match(/SIZE 50 mm, 25 mm/g);
+    expect(sizeMatches?.length).toBe(1);
+
+    // GAP must appear exactly ONCE
+    const gapMatches = tspl.match(/GAP 3 mm, 0 mm/g);
+    expect(gapMatches?.length).toBe(1);
+
+    // CLS must appear twice (once per label)
+    const clsMatches = tspl.match(/CLS/g);
+    expect(clsMatches?.length).toBe(2);
+
+    // PRINT 1,1 must appear twice (once per label)
+    const printMatches = tspl.match(/PRINT 1,1/g);
+    expect(printMatches?.length).toBe(2);
+  });
+});

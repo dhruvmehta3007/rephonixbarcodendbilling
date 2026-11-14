@@ -1,16 +1,19 @@
+import { PRINTER_CONFIG, DOTS_PER_MM } from '../constants/printerConfig';
+
 /**
  * ZPL II (Zebra Programming Language) Machine Code Generator
  * Converts canvas label elements to native Zebra thermal printer commands.
+ * Calibrated for 203 DPI (40mm x 20mm, 320x160 dots landscape)
  */
 
-export function generateZPL(label, elements, options = {}) {
-  const dpi = options.dpi || label.dpi || 203;
-  const dpmm = dpi / 25.4; // dots per mm
+export function generateZPL(label = {}, elements = [], options = {}) {
+  const dpi = options.dpi || label.dpi || PRINTER_CONFIG.dpi;
+  const dpmm = DOTS_PER_MM || (dpi / 25.4); // 8 dots per mm for 203 DPI
 
   const mmToDots = (mm) => Math.round((Number(mm) || 0) * dpmm);
 
-  const labelWidthDots = mmToDots(label.width);
-  const labelHeightDots = mmToDots(label.height);
+  const labelWidthDots = Number(label.widthDots) || (label.width ? mmToDots(label.width) : PRINTER_CONFIG.widthDots);
+  const labelHeightDots = Number(label.heightDots) || (label.height ? mmToDots(label.height) : PRINTER_CONFIG.heightDots);
 
   const commands = [
     `^XA`, // Start of Format

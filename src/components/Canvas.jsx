@@ -1,9 +1,10 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { ZoomIn, ZoomOut, Maximize2, Grid, RotateCcw } from 'lucide-react';
 import { generateBarcodeSvg } from '../utils/barcodeGenerator';
+import { PRINTER_CONFIG, DOTS_PER_MM } from '../constants/printerConfig';
 
-// Base conversion factor: 96 screen DPI / 25.4 mm/inch = 3.779527559 pixels per mm
-const BASE_MM_TO_PX = 3.779527559;
+// Base conversion factor: 8 printer dots per mm (320 dots / 40 mm at 203 DPI)
+const BASE_DOTS_PER_MM = DOTS_PER_MM || 8.0;
 
 export default function Canvas({
   label,
@@ -22,8 +23,8 @@ export default function Canvas({
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
 
-  const mmToPx = (mm) => mm * BASE_MM_TO_PX * zoom;
-  const pxToMm = (px) => px / (BASE_MM_TO_PX * zoom);
+  const mmToPx = (mm) => mm * BASE_DOTS_PER_MM * zoom;
+  const pxToMm = (px) => px / (BASE_DOTS_PER_MM * zoom);
 
   // Substitute variables like {{imei1}} with activeData
   const substitute = (text) => {
@@ -111,6 +112,12 @@ export default function Canvas({
         newW = Math.round(newW / snapGrid) * snapGrid;
         newH = Math.round(newH / snapGrid) * snapGrid;
       }
+
+      // Strictly clamp resized dimensions inside label boundary
+      newX = Math.max(0, Math.min(label.width - 2, newX));
+      newY = Math.max(0, Math.min(label.height - 2, newY));
+      newW = Math.max(2, Math.min(label.width - newX, newW));
+      newH = Math.max(2, Math.min(label.height - newY, newH));
 
       onUpdateElement(dragState.id, {
         x: Number(newX.toFixed(1)),
@@ -259,10 +266,10 @@ export default function Canvas({
           className="btn btn-secondary"
           style={{ padding: '4px 8px', borderRadius: 'var(--radius-full)', border: 'none' }}
           onClick={() => setZoom(1.0)}
-          title="Actual 1:1 Scale"
+          title={`1:1 Dot Scale (${Math.round(label.width * BASE_DOTS_PER_MM)} × ${Math.round(label.height * BASE_DOTS_PER_MM)} px)`}
         >
           <Maximize2 size={13} />
-          <span style={{ fontSize: '11px' }}>1:1</span>
+          <span style={{ fontSize: '11px', fontWeight: 600 }}>1:1 ({Math.round(label.width * BASE_DOTS_PER_MM)}×{Math.round(label.height * BASE_DOTS_PER_MM)})</span>
         </button>
 
         <button
@@ -274,6 +281,12 @@ export default function Canvas({
           <Grid size={13} />
           <span style={{ fontSize: '11px' }}>Grid</span>
         </button>
+
+        <div style={{ width: '1px', height: '18px', background: 'var(--border-subtle)' }} />
+
+        <div style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>
+          {Math.round(label.width * BASE_DOTS_PER_MM)} × {Math.round(label.height * BASE_DOTS_PER_MM)} dots (2:1)
+        </div>
       </div>
 
       {/* Rulers and Label Assembly */}
@@ -312,14 +325,18 @@ export default function Canvas({
           {renderRulerTicks(label.height, false)}
         </div>
 
-        {/* Physical Label Surface (WYSIWYG Card) */}
+        {/* Physical Label Surface (WYSIWYG Card - Fixed 2:1 Aspect Ratio) */}
         <div
           ref={canvasRef}
           className="label-canvas-card print-page-label"
           style={{
             width: `${mmToPx(label.width)}px`,
             height: `${mmToPx(label.height)}px`,
-            borderRadius: `${(label.borderRadius || 2) * zoom}px`,
+            aspectRatio: `${label.width} / ${label.height}`,
+            borderRadius: `${(label.borderRadius || 1) * zoom}px`,
+            position: 'relative',
+            overflow: 'hidden',
+            boxSizing: 'border-box',
             backgroundImage: showGrid
               ? `linear-gradient(to right, rgba(0,0,0,0.06) 1px, transparent 1px),
                  linear-gradient(to bottom, rgba(0,0,0,0.06) 1px, transparent 1px)`
