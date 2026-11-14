@@ -36,11 +36,11 @@ body {
   background: rgba(0, 0, 0, 0.28);
 }
 
-/* Print Media Styling: Optimized for 4BARCODE 4B-2054TG and standard 40mm x 20mm Thermal Roll */
+/* Print Media Styling: Calibrated for 50mm x 25mm Direct Thermal Roll on 4BARCODE 4B-2054TG */
 @media print {
   @page {
     margin: 0 !important;
-    size: 40mm 20mm !important;
+    size: 50mm 25mm landscape !important;
   }
 
   body, html {
@@ -48,9 +48,9 @@ body {
     color: #000000 !important;
     margin: 0 !important;
     padding: 0 !important;
-    width: 40mm !important;
-    height: 20mm !important;
-    max-height: 20mm !important;
+    width: 50mm !important;
+    height: 25mm !important;
+    max-height: 25mm !important;
     overflow: hidden !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -84,17 +84,17 @@ body {
     visibility: visible !important;
   }
 
-  /* Single Barcode Sticker Print Mode (40mm width x 20mm height roll) */
+  /* Single Barcode Sticker Print Mode (50mm width x 25mm height roll) */
   .printable-label {
     position: fixed !important;
     left: 0 !important;
     top: 0 !important;
-    width: 40mm !important;
-    height: 20mm !important;
-    max-width: 40mm !important;
-    max-height: 20mm !important;
+    width: 50mm !important;
+    height: 25mm !important;
+    max-width: 50mm !important;
+    max-height: 25mm !important;
     margin: 0 !important;
-    padding: 1mm 1.5mm !important;
+    padding: 1.2mm 2mm !important;
     background: #ffffff !important;
     color: #000000 !important;
     box-shadow: none !important;
@@ -117,7 +117,7 @@ body {
     position: absolute !important;
     left: 0 !important;
     top: 0 !important;
-    width: 40mm !important;
+    width: 50mm !important;
     display: block !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -132,12 +132,12 @@ body {
     flex-direction: column !important;
     justify-content: space-between !important;
     align-items: center !important;
-    width: 40mm !important;
-    height: 20mm !important;
-    max-width: 40mm !important;
-    max-height: 20mm !important;
+    width: 50mm !important;
+    height: 25mm !important;
+    max-width: 50mm !important;
+    max-height: 25mm !important;
     margin: 0 !important;
-    padding: 0.8mm 1.5mm !important;
+    padding: 1.2mm 2mm !important;
     background: #ffffff !important;
     border: none !important;
     box-shadow: none !important;
