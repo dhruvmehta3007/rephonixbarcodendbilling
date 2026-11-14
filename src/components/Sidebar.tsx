@@ -8,6 +8,7 @@ import {
   Receipt, 
   Barcode, 
   Smartphone,
+  ScanBarcode,
   Users, 
   Truck, 
   BarChart3, 
@@ -20,6 +21,7 @@ import {
 
 export type NavItem = 
   | 'dashboard' 
+  | 'scanner'
   | 'pos' 
   | 'products' 
   | 'devices'
@@ -43,7 +45,8 @@ interface SidebarProps {
 export default function Sidebar({ currentTab, setCurrentTab, user, onLogout }: SidebarProps) {
   const navLinks = [
     { id: 'dashboard' as NavItem, label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'pos' as NavItem, label: 'POS Billing', icon: ShoppingCart, highlight: true },
+    { id: 'scanner' as NavItem, label: 'Scan & Lookup', icon: ScanBarcode, highlight: true },
+    { id: 'pos' as NavItem, label: 'POS Billing', icon: ShoppingCart },
     { id: 'devices' as NavItem, label: 'Device Barcodes', icon: Smartphone },
     { id: 'products' as NavItem, label: 'Products', icon: Package },
     { id: 'inventory' as NavItem, label: 'Inventory & Ledger', icon: Boxes },

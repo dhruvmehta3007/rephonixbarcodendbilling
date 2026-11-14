@@ -19,9 +19,10 @@ export default function BarcodePage() {
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [symbology, setSymbology] = useState<'code128' | 'ean13'>('code128');
-  const [labelSize, setLabelSize] = useState<'30x15' | '40x20' | '50x25' | '20x40' | '50x30'>('50x25');
+  const [labelSize, setLabelSize] = useState<'50x25'>('50x25');
   const [showPrice, setShowPrice] = useState(true); // Default to showing MRP / selling price
   const [showBarcodeText, setShowBarcodeText] = useState(true);
+  const [uniqueSerialized, setUniqueSerialized] = useState(true); // Every printed sticker gets a unique piece suffix
   const [directPrinting, setDirectPrinting] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -66,12 +67,29 @@ export default function BarcodePage() {
     setQuantities((prev) => ({ ...prev, [id]: Math.max(1, count) }));
   };
 
-  // Generate queue of labels to print
+  // Generate queue of labels to print with unique piece barcodes
   const printableLabels = selectedProductIds.flatMap((id) => {
     const prod = products.find((p) => p.id === id);
     if (!prod) return [];
     const count = quantities[id] || 1;
-    return Array(count).fill(prod);
+    const baseCode = prod.customValue || prod.barcode || '000000';
+
+    return Array.from({ length: count }, (_, idx) => {
+      const pieceNum = idx + 1;
+      // If uniqueSerialized is active and count > 1, serialize with -01, -02...
+      // Every physical label gets a unique barcode so handheld scanners detect distinct units!
+      const pieceBarcode = (uniqueSerialized && count > 1)
+        ? `${baseCode}-${String(pieceNum).padStart(2, '0')}`
+        : baseCode;
+
+      return {
+        ...prod,
+        uniqueBarcode: pieceBarcode,
+        pieceNumber: pieceNum,
+        totalPieces: count,
+        isSerialized: count > 1 && uniqueSerialized,
+      };
+    });
   });
 
   const handleDirectTSPLPrint = async () => {
@@ -80,9 +98,9 @@ export default function BarcodePage() {
     try {
       const items = printableLabels.map((p) => ({
         name: p.name,
-        barcode: p.customValue || p.barcode,
+        barcode: p.uniqueBarcode || p.customValue || p.barcode,
         price: p.sellingPrice || 0,
-        quantity: 1,
+        quantity: 1, // 1 label per unique piece
       }));
       const res = await api.print.directTSPL({
         printerName: '4BARCODE 4B-2054TG',
@@ -223,13 +241,9 @@ export default function BarcodePage() {
                   <select
                     value={labelSize}
                     onChange={(e) => setLabelSize(e.target.value as any)}
-                    className="w-full bg-white border border-black/[0.08] rounded-lg px-2 py-1 text-[#1d1d1f] text-xs font-semibold"
+                    className="w-full bg-white border border-black/[0.08] rounded-lg px-2 py-1 text-[#1d1d1f] text-xs font-semibold cursor-default"
                   >
-                    <option value="50x25">50 × 25 mm (Confirmed Spec • 400×200 Dots @ 203 DPI)</option>
-                    <option value="30x15">30 × 15 mm (240×120 Dots)</option>
-                    <option value="40x20">40 × 20 mm (320×160 Dots)</option>
-                    <option value="50x30">50 × 30 mm</option>
-                    <option value="20x40">20 × 40 mm (Portrait)</option>
+                    <option value="50x25">50 × 25 mm (Standard Roll • 400×200 Dots)</option>
                   </select>
                 </div>
               </div>
@@ -242,6 +256,24 @@ export default function BarcodePage() {
                 <label className="flex items-center gap-1.5 cursor-pointer">
                   <input type="checkbox" checked={showBarcodeText} onChange={(e) => setShowBarcodeText(e.target.checked)} />
                   <span>Show Barcode</span>
+                </label>
+              </div>
+
+              {/* Unique Piece Barcodes Toggle for Handheld Scanning */}
+              <div className="pt-1">
+                <label className="flex items-center gap-2 cursor-pointer p-2 rounded-xl bg-blue-50/80 border border-blue-200/80 text-blue-900 transition-all hover:bg-blue-100/80">
+                  <input
+                    type="checkbox"
+                    checked={uniqueSerialized}
+                    onChange={(e) => setUniqueSerialized(e.target.checked)}
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
+                  <div className="flex-1">
+                    <span className="block text-xs font-bold leading-tight">Unique Piece Barcodes</span>
+                    <span className="block text-[10px] text-blue-700/80 leading-tight">
+                      Adds piece suffix (-01, -02...) so each unit has a distinct barcode
+                    </span>
+                  </div>
                 </label>
               </div>
 
@@ -282,15 +314,19 @@ export default function BarcodePage() {
                       className="p-2 bg-white text-black rounded-lg shadow-sm border border-gray-200 flex flex-col justify-between items-center text-center select-none"
                       style={{
                         width: '100%',
-                        maxWidth: labelSize === '20x40' ? '180px' : 'none',
-                        aspectRatio: labelSize === '20x40' ? '20/40' : labelSize === '30x15' ? '30/15' : labelSize === '40x20' ? '40/20' : labelSize === '50x30' ? '50/30' : '50/25',
+                        aspectRatio: '50/25',
                         boxSizing: 'border-box',
                         overflow: 'hidden',
                       }}
                     >
                       {/* CELL POINT Brand Header */}
-                      <div className="w-full text-[8px] font-black text-blue-900 uppercase tracking-wider border-b border-gray-200 pb-0.5 leading-none">
-                        CELL POINT
+                      <div className="w-full flex items-center justify-between border-b border-gray-200 pb-0.5 leading-none">
+                        <span className="text-[8px] font-black text-blue-900 uppercase tracking-wider">CELL POINT</span>
+                        {prod.isSerialized && (
+                          <span className="text-[6.5px] font-bold px-1 rounded bg-blue-100 text-blue-800">
+                            PIECE #{prod.pieceNumber}
+                          </span>
+                        )}
                       </div>
 
                       {/* Device / Product Name */}
@@ -298,13 +334,13 @@ export default function BarcodePage() {
                         {prod.name}
                       </div>
 
-                      {/* Barcode Vector SVG */}
+                      {/* Barcode Vector SVG (crisp high contrast for preview) */}
                       <div
                         className="w-full flex items-center justify-center my-0.5 overflow-hidden max-h-[14mm]"
                         dangerouslySetInnerHTML={{
                           __html: generateBarcodeSvg({
                             type: symbology,
-                            value: prod.barcode || '000000',
+                            value: prod.uniqueBarcode || prod.barcode || '000000',
                             includeText: false,
                             height: 10,
                             scale: 1,
@@ -316,7 +352,7 @@ export default function BarcodePage() {
                       <div className="w-full flex items-center justify-between text-[7px] border-t border-gray-200 pt-0.5 leading-none">
                         {showBarcodeText && (
                           <span className="font-mono font-semibold text-gray-700 truncate max-w-[55%]">
-                            {prod.customValue ? prod.customValue : prod.barcode}
+                            {prod.uniqueBarcode || prod.customValue || prod.barcode}
                           </span>
                         )}
                         {showPrice && (

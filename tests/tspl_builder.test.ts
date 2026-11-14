@@ -12,9 +12,11 @@ describe('TSPL Builder Specifications (50x25mm & 30x15mm @ 203 DPI)', () => {
 
     expect(tspl).toContain('SIZE 50 mm, 25 mm\r\n');
     expect(tspl).toContain('GAP 3 mm, 0 mm\r\n');
+    expect(tspl).toContain('DENSITY 8\r\n');
     expect(tspl).toContain('DIRECTION 1\r\n');
     expect(tspl).toContain('CLS\r\n');
-    expect(tspl).toContain('BARCODE 30,62,"128",65,0,0,2,4,"890123456789"\r\n');
+    // Code 128 narrow=wide (strictly 1:1) and calculated startX
+    expect(tspl).toMatch(/BARCODE \d+,56,"128",72,0,0,2,2,"890123456789"/);
     expect(tspl).toContain('PRINT 1,1\r\n');
   });
 
@@ -29,7 +31,7 @@ describe('TSPL Builder Specifications (50x25mm & 30x15mm @ 203 DPI)', () => {
 
     expect(tspl).toContain('SIZE 30 mm, 15 mm\r\n');
     expect(tspl).toContain('GAP 3 mm, 0 mm\r\n');
-    expect(tspl).toContain('BARCODE 16,34,"128",30,0,0,2,4,"890123456789"\r\n');
+    expect(tspl).toContain('BARCODE 16,34,"128",30,0,0,2,2,"890123456789"\r\n');
     expect(tspl).toContain('PRINT 1,1\r\n');
   });
 

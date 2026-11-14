@@ -14,6 +14,7 @@ import SuppliersPage from './pages/SuppliersPage';
 import ReportsPage from './pages/ReportsPage';
 import UsersPage from './pages/UsersPage';
 import SettingsPage from './pages/SettingsPage';
+import ScannerPage from './pages/ScannerPage';
 import { api } from './services/api';
 
 export default function App() {
@@ -80,6 +81,7 @@ export default function App() {
       {/* Main Dynamic Workspace Area */}
       <main className="flex-1 flex flex-col overflow-hidden bg-[#f5f5f7]">
         {currentTab === 'dashboard' && <DashboardPage onNavigate={setCurrentTab} />}
+        {currentTab === 'scanner' && <ScannerPage onNavigate={setCurrentTab} />}
         {currentTab === 'pos' && <PosPage />}
         {currentTab === 'devices' && <DevicesPage />}
         {currentTab === 'products' && <ProductsPage />}

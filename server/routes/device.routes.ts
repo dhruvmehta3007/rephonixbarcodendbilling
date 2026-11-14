@@ -36,8 +36,17 @@ router.get('/lookup', authenticate, async (req: AuthenticatedRequest, res: Respo
       return res.status(400).json({ error: 'Search code or barcode is required' });
     }
 
-    // Lookup by exact barcode, imei1, imei2, or serialNumber
-    const device = await prisma.deviceUnit.findFirst({
+    // Parse potential serialized suffix (e.g., 'CPB8240626735-02' -> base 'CPB8240626735', piece '02')
+    let baseCode = code;
+    let pieceNumber: number | null = null;
+    const pieceMatch = code.match(/^(.*?)[-_/ ]+(\d+)$/);
+    if (pieceMatch) {
+      baseCode = pieceMatch[1];
+      pieceNumber = parseInt(pieceMatch[2], 10);
+    }
+
+    // 1. Try exact match on DeviceUnit
+    let device = await prisma.deviceUnit.findFirst({
       where: {
         OR: [
           { barcode: code },
@@ -66,12 +75,74 @@ router.get('/lookup', authenticate, async (req: AuthenticatedRequest, res: Respo
       },
     });
 
-    if (!device) {
-      // Also check if it matches a catalog product's general barcode
-      const product = await prisma.product.findFirst({
+    // 2. If not found and code was serialized, try base code on DeviceUnit
+    if (!device && pieceMatch) {
+      device = await prisma.deviceUnit.findFirst({
+        where: {
+          OR: [
+            { barcode: baseCode },
+            { imei1: baseCode },
+            { imei2: baseCode },
+            { serialNumber: baseCode },
+          ],
+        },
+        include: {
+          product: {
+            include: {
+              category: { select: { id: true, name: true } },
+            },
+          },
+          supplier: true,
+          saleItem: {
+            include: {
+              sale: {
+                include: {
+                  customer: true,
+                  cashier: { select: { id: true, fullName: true, username: true } },
+                },
+              },
+            },
+          },
+        },
+      });
+    }
+
+    if (device) {
+      return res.json({
+        type: 'DEVICE_UNIT',
+        data: {
+          ...device,
+          scannedBarcode: code,
+          baseBarcode: baseCode,
+          pieceNumber: pieceNumber || undefined,
+          isSerializedPiece: Boolean(pieceNumber && code !== baseCode),
+        },
+      });
+    }
+
+    // 3. Try exact match on Catalog Product
+    let product = await prisma.product.findFirst({
+      where: {
+        isArchived: false,
+        barcode: code,
+      },
+      include: {
+        category: { select: { id: true, name: true } },
+        supplier: true,
+        devices: {
+          take: 10,
+          orderBy: { purchaseDate: 'desc' },
+          include: { supplier: true },
+        },
+      },
+    });
+
+    // 4. If not found and code was serialized, try base code on Catalog Product
+    if (!product && pieceMatch) {
+      product = await prisma.product.findFirst({
         where: {
           isArchived: false,
-          barcode: code,
+          barcode: baseCode,
         },
         include: {
           category: { select: { id: true, name: true } },
@@ -83,21 +154,22 @@ router.get('/lookup', authenticate, async (req: AuthenticatedRequest, res: Respo
           },
         },
       });
-
-      if (product) {
-        return res.json({
-          type: 'PRODUCT_CATALOG',
-          data: product,
-        });
-      }
-
-      return res.status(404).json({ error: `No device or product found for barcode: "${code}"` });
     }
 
-    return res.json({
-      type: 'DEVICE_UNIT',
-      data: device,
-    });
+    if (product) {
+      return res.json({
+        type: 'PRODUCT_CATALOG',
+        data: {
+          ...product,
+          scannedBarcode: code,
+          baseBarcode: baseCode,
+          pieceNumber: pieceNumber || undefined,
+          isSerializedPiece: Boolean(pieceNumber && code !== baseCode),
+        },
+      });
+    }
+
+    return res.status(404).json({ error: `No device or product found for barcode: "${code}"` });
   } catch (error: any) {
     return res.status(500).json({ error: error.message || 'Error looking up barcode' });
   }

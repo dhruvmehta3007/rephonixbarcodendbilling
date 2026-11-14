@@ -5,14 +5,14 @@
 
 export const DEFAULT_TEMPLATES = [
   {
-    id: 'cellpoint_standard_30x15',
-    name: 'CellPoint Standard 30×15 mm (240×120 Dots)',
+    id: 'cellpoint_standard_50x25',
+    name: 'CellPoint Standard 50×25 mm (400×200 Dots)',
     category: 'CellPoint Standard',
-    description: 'Calibrated for 203 DPI thermal roll (30x15 mm, 240x120 dots, 2:1 aspect ratio). Fixed dot boundaries, no margin scaling.',
-    width: 30, // mm
-    height: 15, // mm
-    widthDots: 240,
-    heightDots: 120,
+    description: 'Calibrated for 203 DPI thermal roll (50x25 mm, 400x200 dots, 2:1 aspect ratio). Fixed dot boundaries, no margin scaling.',
+    width: 50, // mm
+    height: 25, // mm
+    widthDots: 400,
+    heightDots: 200,
     dpi: 203,
     unit: 'mm',
     elements: [
