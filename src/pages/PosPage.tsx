@@ -185,7 +185,7 @@ export default function PosPage() {
       product,
       scannedImei: resolvedImei,
       deviceUnitId: resolvedUnitId,
-      sellingAmount: String(product.sellingPrice || ''),
+      sellingAmount: '',
     });
   };
 
@@ -194,7 +194,11 @@ export default function PosPage() {
     if (e) e.preventDefault();
     if (!sellingPriceModal) return;
 
-    const enteredAmount = parseFloat(sellingPriceModal.sellingAmount);
+    const rawVal = (sellingPriceModal.sellingAmount ?? '').trim();
+    const enteredAmount = rawVal === ''
+      ? Number(sellingPriceModal.product.sellingPrice || 0)
+      : parseFloat(rawVal);
+
     if (isNaN(enteredAmount) || enteredAmount < 0) {
       setErrorMsg('Please enter a valid selling amount.');
       return;
@@ -714,7 +718,6 @@ export default function PosPage() {
                     ref={priceInputRef}
                     type="number"
                     step="any"
-                    required
                     value={sellingPriceModal.sellingAmount}
                     onChange={(e) =>
                       setSellingPriceModal({
@@ -722,12 +725,12 @@ export default function PosPage() {
                         sellingAmount: e.target.value,
                       })
                     }
-                    placeholder="Enter selling price"
-                    className="w-full pl-9 pr-3 py-2.5 bg-white border-2 border-slate-300 focus:border-blue-600 rounded-xl font-mono text-xl font-black text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all shadow-inner"
+                    placeholder={String(sellingPriceModal.product.sellingPrice || '0')}
+                    className="w-full pl-9 pr-3 py-2.5 bg-white border-2 border-slate-300 focus:border-blue-600 rounded-xl font-mono text-xl font-black text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all shadow-inner placeholder:text-slate-400"
                   />
                 </div>
                 <p className="text-[11px] text-slate-500 mt-1.5">
-                  No GST will be added on top. This is the final customer price.
+                  Type new selling amount directly, or press Enter to accept ₹{sellingPriceModal.product.sellingPrice?.toLocaleString('en-IN') || 0}. No GST added.
                 </p>
               </div>
 
