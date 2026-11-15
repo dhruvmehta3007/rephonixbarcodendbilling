@@ -12,10 +12,29 @@ router.get('/', authenticate, async (req: AuthenticatedRequest, res: Response) =
     const where: any = {};
 
     if (search && typeof search === 'string') {
+      const q = search.trim();
       where.OR = [
-        { invoiceNumber: { contains: search.trim() } },
-        { customer: { name: { contains: search.trim() } } },
-        { customer: { phone: { contains: search.trim() } } },
+        { invoiceNumber: { contains: q } },
+        { customer: { name: { contains: q } } },
+        { customer: { phone: { contains: q } } },
+        { items: { some: { barcode: { contains: q } } } },
+        { items: { some: { productName: { contains: q } } } },
+        {
+          items: {
+            some: {
+              devices: {
+                some: {
+                  OR: [
+                    { imei1: { contains: q } },
+                    { imei2: { contains: q } },
+                    { barcode: { contains: q } },
+                    { serialNumber: { contains: q } },
+                  ],
+                },
+              },
+            },
+          },
+        },
       ];
     }
 
@@ -47,7 +66,13 @@ router.get('/', authenticate, async (req: AuthenticatedRequest, res: Response) =
         include: {
           customer: { select: { id: true, name: true, phone: true } },
           cashier: { select: { id: true, fullName: true, username: true } },
-          items: true,
+          items: {
+            include: {
+              devices: {
+                select: { id: true, imei1: true, imei2: true, serialNumber: true, barcode: true },
+              },
+            },
+          },
         },
       }),
       prisma.sale.count({ where }),
@@ -73,7 +98,13 @@ router.get('/:id', authenticate, async (req: AuthenticatedRequest, res: Response
       include: {
         customer: true,
         cashier: { select: { fullName: true, username: true } },
-        items: true,
+        items: {
+          include: {
+            devices: {
+              select: { id: true, imei1: true, imei2: true, serialNumber: true, barcode: true },
+            },
+          },
+        },
       },
     });
 

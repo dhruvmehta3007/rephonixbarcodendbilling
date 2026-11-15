@@ -87,6 +87,23 @@ export default function SalesPage() {
     }
   };
 
+  // Helper to extract unique IMEIs from a sale
+  const getSaleImeis = (sale: any): string[] => {
+    const imeis: string[] = [];
+    sale.items?.forEach((item: any) => {
+      if (item.devices && Array.isArray(item.devices)) {
+        item.devices.forEach((d: any) => {
+          if (d.imei1 && !imeis.includes(d.imei1)) imeis.push(d.imei1);
+          if (d.imei2 && !imeis.includes(d.imei2)) imeis.push(d.imei2);
+        });
+      }
+      if (item.barcode && !imeis.includes(item.barcode)) {
+        imeis.push(item.barcode);
+      }
+    });
+    return imeis;
+  };
+
   return (
     <div className="flex-1 p-8 overflow-y-auto space-y-6">
       {/* Header */}
@@ -113,7 +130,7 @@ export default function SalesPage() {
           </div>
           <input
             type="text"
-            placeholder="Search by invoice number or customer phone..."
+            placeholder="Search by IMEI number, invoice, or customer phone..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-3 py-2 bg-[#f5f5f7] border border-black/[0.08] rounded-xl text-xs text-[#1d1d1f] placeholder-slate-400 focus:outline-none focus:border-blue-500"
@@ -154,7 +171,7 @@ export default function SalesPage() {
           <table className="w-full text-left text-xs">
             <thead className="bg-[#fbfbfd] text-[#1d1d1f] font-semibold border-b border-black/[0.08]">
               <tr>
-                <th className="p-4">INVOICE NUMBER</th>
+                <th className="p-4">IMEI NUMBER</th>
                 <th className="p-4">DATE & TIME</th>
                 <th className="p-4">CUSTOMER</th>
                 <th className="p-4">CASHIER</th>
@@ -181,7 +198,28 @@ export default function SalesPage() {
               ) : (
                 sales.map((s) => (
                   <tr key={s.id} className="hover:bg-[#f5f5f7] transition-colors">
-                    <td className="p-4 font-mono font-bold text-[#1d1d1f] text-sm">{s.invoiceNumber}</td>
+                    <td className="p-4">
+                      {(() => {
+                        const imeis = getSaleImeis(s);
+                        return imeis.length > 0 ? (
+                          <div className="space-y-1">
+                            {imeis.map((imei, idx) => (
+                              <div key={idx} className="font-mono font-bold text-[#1d1d1f] text-sm tracking-wide select-all">
+                                {imei}
+                              </div>
+                            ))}
+                            <div className="text-[11px] text-[#86868b] font-mono">
+                              #{s.invoiceNumber}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-0.5">
+                            <div className="font-mono font-bold text-[#1d1d1f] text-sm">#{s.invoiceNumber}</div>
+                            <div className="text-[10px] text-[#86868b]">No IMEI</div>
+                          </div>
+                        );
+                      })()}
+                    </td>
                     <td className="p-4 font-mono text-[#86868b]">
                       {new Date(s.createdAt).toLocaleDateString()} {new Date(s.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </td>
@@ -280,12 +318,19 @@ export default function SalesPage() {
                 <div className="font-bold">Status: {selectedInvoice.status}</div>
               </div>
 
-              <div className="py-2.5 border-b border-dashed border-gray-400 space-y-1 text-[10px]">
+              <div className="py-2.5 border-b border-dashed border-gray-400 space-y-1.5 text-[10px]">
                 {selectedInvoice.items?.map((item: any) => (
-                  <div key={item.id} className="flex justify-between">
-                    <span>
-                      {item.productName} × {item.quantity}
-                    </span>
+                  <div key={item.id} className="flex justify-between items-start">
+                    <div>
+                      <div className="font-semibold">
+                        {item.productName} × {item.quantity}
+                      </div>
+                      {item.barcode && (
+                        <div className="text-[9px] text-gray-500 font-mono tracking-wider">
+                          IMEI: {item.barcode}
+                        </div>
+                      )}
+                    </div>
                     <span className="font-bold">₹{item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                   </div>
                 ))}

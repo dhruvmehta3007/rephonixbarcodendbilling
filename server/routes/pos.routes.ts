@@ -254,7 +254,8 @@ router.post('/checkout', authenticate, async (req: AuthenticatedRequest, res: Re
         });
 
         // Mark corresponding DeviceUnit(s) as SOLD
-        const matchedCartItem = items.find((c) => c.productId === item.productId);
+        const matchedCartItem = items.find((c) => c.productId === item.productId && (c.imei === item.barcode || c.deviceBarcode === item.barcode));
+        const createdSaleItem = sale.items.find((si) => si.productId === item.productId && si.barcode === item.barcode);
         if (matchedCartItem?.deviceUnitId) {
           await tx.deviceUnit.update({
             where: { id: matchedCartItem.deviceUnitId },
@@ -262,6 +263,7 @@ router.post('/checkout', authenticate, async (req: AuthenticatedRequest, res: Re
               status: 'SOLD',
               soldPrice: item.unitPrice,
               soldAt: new Date(),
+              saleItemId: createdSaleItem?.id || null,
             },
           });
         } else {
@@ -277,6 +279,7 @@ router.post('/checkout', authenticate, async (req: AuthenticatedRequest, res: Re
                 status: 'SOLD',
                 soldPrice: item.unitPrice,
                 soldAt: new Date(),
+                saleItemId: createdSaleItem?.id || null,
               },
             });
           }
