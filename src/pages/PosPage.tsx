@@ -64,47 +64,63 @@ export default function PosPage() {
 
   const barcodeInputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-focus price input when selling price modal is opened
+  // Keep live references for global hotkeys without re-registering listener or stealing focus
+  const sellingPriceModalRef = useRef(sellingPriceModal);
+  sellingPriceModalRef.current = sellingPriceModal;
+  const isCheckoutOpenRef = useRef(isCheckoutOpen);
+  isCheckoutOpenRef.current = isCheckoutOpen;
+  const cartLengthRef = useRef(cart.length);
+  cartLengthRef.current = cart.length;
+
+  // Auto-focus price input ONLY when modal opens (not on every keystroke)
+  const isModalOpen = Boolean(sellingPriceModal?.isOpen);
   useEffect(() => {
-    if (sellingPriceModal?.isOpen) {
-      setTimeout(() => {
+    if (isModalOpen) {
+      const timer = setTimeout(() => {
         priceInputRef.current?.focus();
         priceInputRef.current?.select();
-      }, 50);
+      }, 60);
+      return () => clearTimeout(timer);
     }
-  }, [sellingPriceModal?.isOpen]);
+  }, [isModalOpen]);
 
-  // Load initial catalog & customers
+  // Load initial catalog & customers ONCE on component mount
   useEffect(() => {
     loadCatalog('');
     loadCustomers();
     loadSettings();
 
-    // Auto focus barcode scanner input
+    // Auto focus barcode scanner input on initial page load
     barcodeInputRef.current?.focus();
+  }, []);
 
-    // Hotkey listeners: F2 focus scanner, F4 checkout, Escape close modal
+  // Global hotkeys (F2, F4, Esc) registered once
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (sellingPriceModal?.isOpen) {
+        if (sellingPriceModalRef.current?.isOpen) {
           setSellingPriceModal(null);
-          barcodeInputRef.current?.focus();
-        } else if (isCheckoutOpen) {
+          setTimeout(() => barcodeInputRef.current?.focus(), 50);
+        } else if (isCheckoutOpenRef.current) {
           setIsCheckoutOpen(false);
         }
       } else if (e.key === 'F2') {
-        e.preventDefault();
-        barcodeInputRef.current?.focus();
-        barcodeInputRef.current?.select();
+        if (!sellingPriceModalRef.current?.isOpen && !isCheckoutOpenRef.current) {
+          e.preventDefault();
+          barcodeInputRef.current?.focus();
+          barcodeInputRef.current?.select();
+        }
       } else if (e.key === 'F4') {
-        e.preventDefault();
-        if (cart.length > 0) setIsCheckoutOpen(true);
+        if (!sellingPriceModalRef.current?.isOpen && !isCheckoutOpenRef.current) {
+          e.preventDefault();
+          if (cartLengthRef.current > 0) setIsCheckoutOpen(true);
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cart, sellingPriceModal, isCheckoutOpen]);
+  }, []);
 
   const loadCatalog = async (q: string) => {
     try {
@@ -718,13 +734,12 @@ export default function PosPage() {
                     ref={priceInputRef}
                     type="number"
                     step="any"
+                    inputMode="numeric"
                     value={sellingPriceModal.sellingAmount}
-                    onChange={(e) =>
-                      setSellingPriceModal({
-                        ...sellingPriceModal,
-                        sellingAmount: e.target.value,
-                      })
-                    }
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSellingPriceModal((prev) => (prev ? { ...prev, sellingAmount: val } : null));
+                    }}
                     placeholder={String(sellingPriceModal.product.sellingPrice || '0')}
                     className="w-full pl-9 pr-3 py-2.5 bg-white border-2 border-slate-300 focus:border-blue-600 rounded-xl font-mono text-xl font-black text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all shadow-inner placeholder:text-slate-400"
                   />
