@@ -20,6 +20,7 @@ import { api } from '../services/api';
 import confetti from 'canvas-confetti';
 
 interface CartItem {
+  cartItemId: string;
   productId: string;
   deviceUnitId?: string;
   deviceBarcode?: string;
@@ -44,6 +45,16 @@ export default function PosPage() {
   const [cashReceived, setCashReceived] = useState<string>('');
   const [notes, setNotes] = useState('');
   
+  // Selling Amount Modal State (Prompt for selling price per device)
+  const [sellingPriceModal, setSellingPriceModal] = useState<{
+    isOpen: boolean;
+    product: any;
+    scannedImei?: string;
+    deviceUnitId?: string;
+    sellingAmount: string;
+  } | null>(null);
+  const priceInputRef = useRef<HTMLInputElement>(null);
+
   // Checkout & Receipt Modal State
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [completedSale, setCompletedSale] = useState<any>(null);
@@ -52,6 +63,16 @@ export default function PosPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const barcodeInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus price input when selling price modal is opened
+  useEffect(() => {
+    if (sellingPriceModal?.isOpen) {
+      setTimeout(() => {
+        priceInputRef.current?.focus();
+        priceInputRef.current?.select();
+      }, 50);
+    }
+  }, [sellingPriceModal?.isOpen]);
 
   // Load initial catalog & customers
   useEffect(() => {
@@ -64,7 +85,14 @@ export default function PosPage() {
 
     // Hotkey listeners: F2 focus scanner, F4 checkout, Escape close modal
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'F2') {
+      if (e.key === 'Escape') {
+        if (sellingPriceModal?.isOpen) {
+          setSellingPriceModal(null);
+          barcodeInputRef.current?.focus();
+        } else if (isCheckoutOpen) {
+          setIsCheckoutOpen(false);
+        }
+      } else if (e.key === 'F2') {
         e.preventDefault();
         barcodeInputRef.current?.focus();
         barcodeInputRef.current?.select();
@@ -76,7 +104,7 @@ export default function PosPage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cart]);
+  }, [cart, sellingPriceModal, isCheckoutOpen]);
 
   const loadCatalog = async (q: string) => {
     try {
@@ -116,8 +144,7 @@ export default function PosPage() {
       if (results && results.length > 0) {
         const matched = results[0];
         const imeiFound = matched.deviceImei1 || matched.deviceBarcode || (matched.barcode === query ? query : undefined);
-        addToCart(matched, imeiFound, matched.deviceUnitId);
-        setBarcodeInput('');
+        promptSellingAmount(matched, imeiFound, matched.deviceUnitId);
         setErrorMsg(null);
       } else {
         setErrorMsg(`No phone model found matching scanned IMEI "${query}"`);
@@ -128,16 +155,74 @@ export default function PosPage() {
     }
   };
 
-  // Add Product to Cart or increment quantity if already present
-  const addToCart = (product: any, scannedImei?: string, deviceUnitId?: string) => {
+  // Open Selling Amount Prompt for a Device / Product
+  const promptSellingAmount = (product: any, scannedImei?: string, deviceUnitId?: string) => {
     if (product.currentStock <= 0) {
       setErrorMsg(`"${product.name}" is currently out of stock!`);
       setTimeout(() => setErrorMsg(null), 3000);
       return;
     }
 
+    let resolvedImei = scannedImei || product.deviceImei1 || product.deviceBarcode;
+    let resolvedUnitId = deviceUnitId || product.deviceUnitId;
+
+    if (!resolvedUnitId && product.devices && product.devices.length > 0) {
+      const availableDev = product.devices.find((d: any) => !cart.some((c) => c.deviceUnitId === d.id));
+      if (availableDev) {
+        resolvedUnitId = availableDev.id;
+        resolvedImei = availableDev.imei1 || availableDev.barcode;
+      }
+    }
+
+    if (resolvedUnitId && cart.some((c) => c.deviceUnitId === resolvedUnitId)) {
+      setErrorMsg(`Device with IMEI "${resolvedImei}" is already added to this bill.`);
+      setTimeout(() => setErrorMsg(null), 3000);
+      return;
+    }
+
+    setSellingPriceModal({
+      isOpen: true,
+      product,
+      scannedImei: resolvedImei,
+      deviceUnitId: resolvedUnitId,
+      sellingAmount: String(product.sellingPrice || ''),
+    });
+  };
+
+  // Confirm Selling Amount from Modal and add to Cart
+  const confirmAddWithSellingPrice = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!sellingPriceModal) return;
+
+    const enteredAmount = parseFloat(sellingPriceModal.sellingAmount);
+    if (isNaN(enteredAmount) || enteredAmount < 0) {
+      setErrorMsg('Please enter a valid selling amount.');
+      return;
+    }
+
+    addToCart(
+      sellingPriceModal.product,
+      sellingPriceModal.scannedImei,
+      sellingPriceModal.deviceUnitId,
+      enteredAmount
+    );
+
+    setSellingPriceModal(null);
+    setBarcodeInput('');
+    setTimeout(() => {
+      barcodeInputRef.current?.focus();
+    }, 50);
+  };
+
+  // Add Product to Cart with specified selling amount (no automatic GST)
+  const addToCart = (product: any, scannedImei?: string, deviceUnitId?: string, customSellingPrice?: number) => {
+    const finalPrice = typeof customSellingPrice === 'number' && !isNaN(customSellingPrice)
+      ? customSellingPrice
+      : (product.sellingPrice || 0);
+
     const resolvedImei = scannedImei || product.deviceImei1 || product.deviceBarcode;
     const resolvedUnitId = deviceUnitId || product.deviceUnitId;
+    const cartItemId = resolvedUnitId || `${product.id}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
 
     setCart((prev) => {
       // Check if this exact scanned device unit is already in the cart
@@ -147,8 +232,10 @@ export default function PosPage() {
         return prev;
       }
 
-      // If clicked from grid or general product without specific IMEI
-      const existingIdx = prev.findIndex((item) => item.productId === product.id && !item.deviceUnitId && !resolvedUnitId);
+      // If clicked from grid or general product without specific IMEI and same price
+      const existingIdx = prev.findIndex(
+        (item) => item.productId === product.id && !item.deviceUnitId && !resolvedUnitId && item.price === finalPrice
+      );
       if (existingIdx >= 0 && !resolvedUnitId) {
         const item = prev[existingIdx];
         if (item.quantity + 1 > product.currentStock) {
@@ -163,14 +250,15 @@ export default function PosPage() {
         return [
           ...prev,
           {
+            cartItemId,
             productId: product.id,
             deviceUnitId: resolvedUnitId,
             deviceBarcode: resolvedImei,
             imei: resolvedImei,
             name: product.name,
             barcode: resolvedImei || product.barcode,
-            price: product.sellingPrice,
-            taxRate: product.taxRate || 0,
+            price: finalPrice,
+            taxRate: 0, // DO NOT automatically add GST
             quantity: 1,
             discount: 0,
             maxStock: product.currentStock,
@@ -181,11 +269,11 @@ export default function PosPage() {
   };
 
   // Update Cart Quantity
-  const updateQuantity = (productId: string, delta: number) => {
+  const updateQuantity = (cartItemId: string, delta: number) => {
     setCart((prev) =>
       prev
         .map((item) => {
-          if (item.productId === productId) {
+          if (item.cartItemId === cartItemId) {
             const newQty = item.quantity + delta;
             if (newQty <= 0) return null;
             if (newQty > item.maxStock) {
@@ -201,25 +289,29 @@ export default function PosPage() {
     );
   };
 
-  // Update Item Discount
-  const updateItemDiscount = (productId: string, discount: number) => {
+  // Update Selling Price Directly in Cart Line Item
+  const updateItemPrice = (cartItemId: string, newPrice: number) => {
     setCart((prev) =>
-      prev.map((item) => (item.productId === productId ? { ...item, discount: Math.max(0, discount) } : item))
+      prev.map((item) => (item.cartItemId === cartItemId ? { ...item, price: Math.max(0, newPrice) } : item))
+    );
+  };
+
+  // Update Item Discount
+  const updateItemDiscount = (cartItemId: string, discount: number) => {
+    setCart((prev) =>
+      prev.map((item) => (item.cartItemId === cartItemId ? { ...item, discount: Math.max(0, discount) } : item))
     );
   };
 
   // Remove Item from Cart
-  const removeFromCart = (productId: string) => {
-    setCart((prev) => prev.filter((item) => item.productId !== productId));
+  const removeFromCart = (cartItemId: string) => {
+    setCart((prev) => prev.filter((item) => item.cartItemId !== cartItemId));
   };
 
-  // Calculate Order Totals
+  // Calculate Order Totals (NO automatic GST added: final price equals entered selling amount)
   const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity - item.discount), 0);
-  const taxAmount = cart.reduce((acc, item) => {
-    const lineSubtotal = item.price * item.quantity - item.discount;
-    return acc + (lineSubtotal * item.taxRate) / 100;
-  }, 0);
-  const totalAmount = Math.round((subtotal + taxAmount) * 100) / 100;
+  const taxAmount = 0; // Don't automatically add GST
+  const totalAmount = Math.round(subtotal * 100) / 100;
   const numCashReceived = parseFloat(cashReceived) || 0;
   const changeAmount = paymentMethod === 'CASH' ? Math.max(0, numCashReceived - totalAmount) : 0;
 
@@ -240,7 +332,11 @@ export default function PosPage() {
           deviceBarcode: i.deviceBarcode || i.barcode,
           imei: i.imei || i.barcode,
           quantity: i.quantity,
+          unitPrice: i.price,
+          sellingPrice: i.price,
+          price: i.price,
           discount: i.discount,
+          taxRate: 0,
         })),
         customerId: selectedCustomerId || undefined,
         paymentMethod,
@@ -343,7 +439,7 @@ export default function PosPage() {
               return (
                 <div
                   key={p.id}
-                  onClick={() => addToCart(p)}
+                  onClick={() => promptSellingAmount(p)}
                   className={`p-3.5 rounded-2xl border transition-all flex flex-col justify-between select-none ${
                     inStock
                       ? 'bg-white border-slate-200/90 hover:border-blue-500 hover:shadow-md hover:-translate-y-0.5 cursor-pointer active:scale-[0.98]'
@@ -379,7 +475,7 @@ export default function PosPage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          addToCart(p);
+                          promptSellingAmount(p);
                         }}
                         className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white border border-blue-200 hover:border-blue-600 text-xs font-bold transition-all shadow-xs flex items-center gap-1 active:scale-95"
                       >
@@ -459,22 +555,19 @@ export default function PosPage() {
             cart.map((item) => {
               const lineTotal = item.price * item.quantity - item.discount;
               return (
-                <div key={item.productId} className="py-3 first:pt-0 last:pb-0 space-y-2">
+                <div key={item.cartItemId} className="py-3.5 first:pt-0 last:pb-0 space-y-2.5">
                   <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="text-xs font-bold text-slate-900 leading-tight">{item.name}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-bold text-slate-900 leading-tight truncate">{item.name}</div>
                       {item.imei && (
                         <div className="inline-flex items-center gap-1 font-mono text-[10px] font-bold text-blue-900 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 mt-0.5">
                           <span className="text-[9px] text-blue-600 font-sans font-semibold">IMEI:</span>
-                          <span>{item.imei}</span>
+                          <span className="select-all">{item.imei}</span>
                         </div>
                       )}
-                      <div className="text-[10px] text-slate-500 font-mono mt-0.5">
-                        ₹{item.price.toLocaleString('en-IN')} × {item.quantity} | Tax: {item.taxRate}%
-                      </div>
                     </div>
                     <button
-                      onClick={() => removeFromCart(item.productId)}
+                      onClick={() => removeFromCart(item.cartItemId)}
                       className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                       title="Remove"
                     >
@@ -482,26 +575,46 @@ export default function PosPage() {
                     </button>
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    {/* Quantity Stepper */}
-                    <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden bg-slate-50 shadow-xs">
-                      <button
-                        onClick={() => updateQuantity(item.productId, -1)}
-                        className="px-2.5 py-1 text-slate-700 hover:bg-slate-200 hover:text-slate-900 transition-colors"
-                      >
-                        <Minus size={12} className="stroke-[2.5]" />
-                      </button>
-                      <span className="px-3 text-xs font-black text-slate-900 font-mono bg-white py-0.5">{item.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(item.productId, 1)}
-                        className="px-2.5 py-1 text-slate-700 hover:bg-slate-200 hover:text-slate-900 transition-colors"
-                      >
-                        <Plus size={12} className="stroke-[2.5]" />
-                      </button>
+                  {/* Selling Price Input & Quantity Row */}
+                  <div className="flex items-center justify-between gap-2">
+                    {/* Editable Selling Price for this Device */}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Price:</span>
+                      <div className="relative flex items-center">
+                        <span className="absolute left-2 text-xs font-black text-slate-500">₹</span>
+                        <input
+                          type="number"
+                          step="any"
+                          value={item.price}
+                          onChange={(e) => updateItemPrice(item.cartItemId, parseFloat(e.target.value) || 0)}
+                          className="w-24 pl-5 pr-1.5 py-1 bg-[#f5f5f7] hover:bg-white focus:bg-white border border-slate-200 focus:border-blue-600 rounded-lg text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/10 transition-all"
+                          title="Click to edit selling price for this device"
+                        />
+                      </div>
                     </div>
 
-                    <div className="text-right">
-                      <div className="text-sm font-black text-slate-900 font-mono">₹{lineTotal.toLocaleString('en-IN')}</div>
+                    {/* Quantity or Line Total */}
+                    <div className="flex items-center gap-2">
+                      {!item.deviceUnitId && (
+                        <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden bg-slate-50 shadow-xs">
+                          <button
+                            onClick={() => updateQuantity(item.cartItemId, -1)}
+                            className="px-2 py-0.5 text-slate-700 hover:bg-slate-200 hover:text-slate-900 transition-colors"
+                          >
+                            <Minus size={11} className="stroke-[2.5]" />
+                          </button>
+                          <span className="px-2 text-xs font-black text-slate-900 font-mono bg-white py-0.5">{item.quantity}</span>
+                          <button
+                            onClick={() => updateQuantity(item.cartItemId, 1)}
+                            className="px-2 py-0.5 text-slate-700 hover:bg-slate-200 hover:text-slate-900 transition-colors"
+                          >
+                            <Plus size={11} className="stroke-[2.5]" />
+                          </button>
+                        </div>
+                      )}
+                      <div className="text-right">
+                        <div className="text-sm font-black text-slate-900 font-mono">₹{lineTotal.toLocaleString('en-IN')}</div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -519,7 +632,7 @@ export default function PosPage() {
             </div>
             <div className="flex justify-between">
               <span>Taxes (GST):</span>
-              <span className="font-mono font-semibold text-slate-900">₹{taxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              <span className="font-mono font-semibold text-slate-900">₹0.00</span>
             </div>
             <div className="flex justify-between items-baseline pt-2 border-t border-slate-200">
               <span className="text-sm font-bold text-slate-900">Payable Total:</span>
@@ -546,6 +659,101 @@ export default function PosPage() {
           </button>
         </div>
       </div>
+
+      {/* ================= SELLING AMOUNT INPUT MODAL ================= */}
+      {sellingPriceModal && sellingPriceModal.isOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+                  ₹
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Enter Selling Amount</h3>
+                  <p className="text-[11px] text-slate-500">Input device selling price</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSellingPriceModal(null);
+                  barcodeInputRef.current?.focus();
+                }}
+                className="w-7 h-7 rounded-full bg-slate-200/70 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            <form onSubmit={confirmAddWithSellingPrice} className="p-5 space-y-4">
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                <div className="text-xs font-bold text-slate-900 leading-snug">
+                  {sellingPriceModal.product.name}
+                </div>
+                {sellingPriceModal.scannedImei && (
+                  <div className="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-blue-900 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                    <span className="text-[10px] text-blue-600 font-sans font-semibold">IMEI:</span>
+                    <span>{sellingPriceModal.scannedImei}</span>
+                  </div>
+                )}
+                <div className="text-[11px] text-slate-500 font-mono">
+                  Catalog MRP: ₹{sellingPriceModal.product.sellingPrice?.toLocaleString('en-IN') || 0}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Selling Amount (₹) <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-lg font-black text-slate-500">
+                    ₹
+                  </span>
+                  <input
+                    ref={priceInputRef}
+                    type="number"
+                    step="any"
+                    required
+                    value={sellingPriceModal.sellingAmount}
+                    onChange={(e) =>
+                      setSellingPriceModal({
+                        ...sellingPriceModal,
+                        sellingAmount: e.target.value,
+                      })
+                    }
+                    placeholder="Enter selling price"
+                    className="w-full pl-9 pr-3 py-2.5 bg-white border-2 border-slate-300 focus:border-blue-600 rounded-xl font-mono text-xl font-black text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all shadow-inner"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1.5">
+                  No GST will be added on top. This is the final customer price.
+                </p>
+              </div>
+
+              <div className="flex gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSellingPriceModal(null);
+                    barcodeInputRef.current?.focus();
+                  }}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-bold transition-all cursor-pointer"
+                >
+                  Cancel (Esc)
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-[#0071e3] hover:bg-blue-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-600/25 flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Plus size={15} className="stroke-[2.5]" />
+                  <span>Add to Bill</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ================= PAYMENT CHECKOUT MODAL ================= */}
       {isCheckoutOpen && (
@@ -770,10 +978,17 @@ export default function PosPage() {
                   <span>Subtotal:</span>
                   <span>₹{completedSale.subtotal?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>GST / Tax Total:</span>
-                  <span>₹{completedSale.taxAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                </div>
+                {completedSale.taxAmount > 0 ? (
+                  <div className="flex justify-between">
+                    <span>GST / Tax Total:</span>
+                    <span>₹{completedSale.taxAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                ) : (
+                  <div className="flex justify-between text-[10px] text-gray-500">
+                    <span>GST / Taxes:</span>
+                    <span>₹0.00</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm font-black pt-1 border-t border-gray-300">
                   <span>GRAND TOTAL:</span>
                   <span>₹{completedSale.totalAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>

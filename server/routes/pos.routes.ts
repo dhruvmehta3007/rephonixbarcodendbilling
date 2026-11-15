@@ -12,7 +12,11 @@ const checkoutItemSchema = z.object({
   deviceBarcode: z.string().optional().nullable(),
   imei: z.string().optional().nullable(),
   quantity: z.number().int().min(1, 'Quantity must be at least 1'),
+  unitPrice: z.number().min(0).optional(),
+  sellingPrice: z.number().min(0).optional(),
+  price: z.number().min(0).optional(),
   discount: z.number().min(0).default(0), // line item discount in currency
+  taxRate: z.number().min(0).default(0), // Don't automatically add GST
 });
 
 const checkoutSchema = z.object({
@@ -147,13 +151,19 @@ router.post('/checkout', authenticate, async (req: AuthenticatedRequest, res: Re
 
     const calculatedItems = items.map((cartItem) => {
       const prod = productMap.get(cartItem.productId)!;
-      const unitPrice = prod.sellingPrice;
+      // Allow custom selling amount entered by user for each device, fallback to product catalog sellingPrice
+      const unitPrice = typeof cartItem.sellingPrice === 'number'
+        ? cartItem.sellingPrice
+        : (typeof cartItem.price === 'number'
+          ? cartItem.price
+          : (typeof cartItem.unitPrice === 'number' ? cartItem.unitPrice : prod.sellingPrice));
       const unitCost = prod.purchasePrice;
       const quantity = cartItem.quantity;
       const discount = Math.min(unitPrice * quantity, round2(cartItem.discount || 0));
 
       const lineSubtotal = round2(unitPrice * quantity - discount);
-      const taxRate = prod.taxRate || 0;
+      // DO NOT automatically add GST: taxRate defaults to 0
+      const taxRate = typeof cartItem.taxRate === 'number' ? cartItem.taxRate : 0;
       const lineTax = round2((lineSubtotal * taxRate) / 100);
       const lineTotal = round2(lineSubtotal + lineTax);
 

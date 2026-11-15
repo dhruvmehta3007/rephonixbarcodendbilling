@@ -30,6 +30,7 @@ export async function resetToCleanDatabase() {
     update: {
       shopName: 'The Cell Point',
       email: 'contact@thecellpoint.com',
+      taxRateDefault: 0.0,
       receiptFooter: 'Thank you for shopping with The Cell Point! 7-day hassle free replacement on certified devices.',
     },
     create: {
@@ -40,7 +41,7 @@ export async function resetToCleanDatabase() {
       email: 'contact@thecellpoint.com',
       gstin: '27AAAAA0000A1Z5',
       currencySymbol: '₹',
-      taxRateDefault: 18.0,
+      taxRateDefault: 0.0,
       receiptFooter: 'Thank you for shopping with The Cell Point! 7-day hassle free replacement on certified devices.',
       allowNegativeStock: false,
     },

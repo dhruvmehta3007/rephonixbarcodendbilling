@@ -22,7 +22,7 @@ const productSchema = z.object({
   purchasePrice: z.number().min(0, 'Purchase price cannot be negative'),
   sellingPrice: z.number().min(0, 'Selling price cannot be negative'),
   customValue: z.string().optional().nullable(),
-  taxRate: z.number().min(0).max(100, 'Tax rate must be between 0 and 100').default(18),
+  taxRate: z.number().min(0).max(100, 'Tax rate must be between 0 and 100').default(0),
   currentStock: z.number().int().min(0).default(1),
   minStockThreshold: z.number().int().min(0).default(1),
   unit: z.string().default('pcs'),
