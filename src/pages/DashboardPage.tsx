@@ -10,7 +10,9 @@ import {
   Plus, 
   RefreshCw,
   Barcode,
-  Boxes
+  Boxes,
+  IndianRupee,
+  Layers
 } from 'lucide-react';
 import { api } from '../services/api';
 import { NavItem } from '../components/Sidebar';
@@ -96,7 +98,7 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
       </div>
 
       {/* Apple Clean KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Today's Sales */}
         <div className="p-5 rounded-2xl bg-white border border-black/[0.06] shadow-sm relative group transition-all hover:shadow">
           <div className="flex items-center justify-between text-[#86868b] mb-2">
@@ -105,12 +107,51 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
               <TrendingUp size={16} />
             </div>
           </div>
-          <div className="text-[26px] font-semibold text-[#1d1d1f] tracking-tight">
+          <div className="text-[24px] font-bold text-[#1d1d1f] tracking-tight">
             ₹{stats.todaySales?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </div>
           <div className="text-[12px] text-[#86868b] mt-1.5 flex items-center gap-1.5">
             <span className="text-[#34c759] font-semibold">{stats.todayTransactions} order(s)</span>
             <span>billed today</span>
+          </div>
+        </div>
+
+        {/* Total Inventory Stock (Quantity Units) */}
+        <div 
+          onClick={() => onNavigate('inventory')}
+          className="p-5 rounded-2xl bg-white border border-black/[0.06] shadow-sm relative group transition-all hover:shadow cursor-pointer"
+        >
+          <div className="flex items-center justify-between text-[#86868b] mb-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wider">Stock Units Left</span>
+            <div className="w-8 h-8 rounded-full bg-[#5856d6]/10 text-[#5856d6] flex items-center justify-center">
+              <Boxes size={16} />
+            </div>
+          </div>
+          <div className="text-[24px] font-bold text-[#1d1d1f] tracking-tight">
+            {stats.totalInventory?.toLocaleString()} <span className="text-[13px] font-medium text-[#86868b]">pcs</span>
+          </div>
+          <div className="text-[12px] text-[#86868b] mt-1.5 flex items-center justify-between">
+            <span>Across {stats.totalProducts} catalog items</span>
+            <ArrowUpRight size={13} className="text-[#5856d6] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </div>
+        </div>
+
+        {/* Total Inventory Valuation (Amount Left) */}
+        <div 
+          onClick={() => onNavigate('inventory')}
+          className="p-5 rounded-2xl bg-white border border-black/[0.06] shadow-sm relative group transition-all hover:shadow cursor-pointer"
+        >
+          <div className="flex items-center justify-between text-[#86868b] mb-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wider">Inventory Value</span>
+            <div className="w-8 h-8 rounded-full bg-[#0071e3]/10 text-[#0071e3] flex items-center justify-center">
+              <IndianRupee size={16} />
+            </div>
+          </div>
+          <div className="text-[24px] font-bold text-[#0071e3] tracking-tight">
+            ₹{(stats.totalInventoryValue || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+          </div>
+          <div className="text-[12px] text-[#86868b] mt-1.5">
+            Cost basis: <span className="font-semibold text-slate-700">₹{(stats.totalPurchaseValue || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>
         </div>
 
@@ -122,22 +163,8 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
               <Receipt size={16} />
             </div>
           </div>
-          <div className="text-[26px] font-semibold text-[#1d1d1f] tracking-tight">{stats.todayTransactions}</div>
-          <div className="text-[12px] text-[#86868b] mt-1.5">Checkout receipts processed</div>
-        </div>
-
-        {/* Total Inventory Units */}
-        <div className="p-5 rounded-2xl bg-white border border-black/[0.06] shadow-sm relative group transition-all hover:shadow">
-          <div className="flex items-center justify-between text-[#86868b] mb-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider">Inventory Stock</span>
-            <div className="w-8 h-8 rounded-full bg-[#5856d6]/10 text-[#5856d6] flex items-center justify-center">
-              <Boxes size={16} />
-            </div>
-          </div>
-          <div className="text-[26px] font-semibold text-[#1d1d1f] tracking-tight">
-            {stats.totalInventory?.toLocaleString()} <span className="text-[14px] font-normal text-[#86868b]">units</span>
-          </div>
-          <div className="text-[12px] text-[#86868b] mt-1.5">Across {stats.totalProducts} catalog products</div>
+          <div className="text-[24px] font-bold text-[#1d1d1f] tracking-tight">{stats.todayTransactions}</div>
+          <div className="text-[12px] text-[#86868b] mt-1.5">Receipts checked out</div>
         </div>
 
         {/* Low Stock Alerts */}
@@ -151,12 +178,12 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
               <AlertTriangle size={16} />
             </div>
           </div>
-          <div className="text-[26px] font-semibold text-[#ff9500] tracking-tight">
-            {stats.lowStockCount} <span className="text-[14px] font-normal text-[#86868b]">items</span>
+          <div className="text-[24px] font-bold text-[#ff9500] tracking-tight">
+            {stats.lowStockCount} <span className="text-[13px] font-medium text-[#86868b]">items</span>
           </div>
-          <div className="text-[12px] text-[#86868b] mt-1.5 flex items-center gap-1">
+          <div className="text-[12px] text-[#86868b] mt-1.5 flex items-center justify-between">
             <span>{stats.outOfStockCount} zero stock</span>
-            <ArrowUpRight size={13} className="text-[#ff9500]" />
+            <ArrowUpRight size={13} className="text-[#ff9500] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
           </div>
         </div>
       </div>

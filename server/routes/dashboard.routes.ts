@@ -35,7 +35,7 @@ router.get('/stats', authenticate, async (req: AuthenticatedRequest, res: Respon
     const todaySales = todaySalesData._sum.totalAmount || 0;
     const todayTransactions = todaySalesData._count.id || 0;
 
-    // 4. Low stock products (stock <= threshold)
+    // 4. Low stock products & Inventory valuation calculation
     const allProducts = await prisma.product.findMany({
       where: { isArchived: false },
       select: {
@@ -44,9 +44,20 @@ router.get('/stats', authenticate, async (req: AuthenticatedRequest, res: Respon
         barcode: true,
         currentStock: true,
         minStockThreshold: true,
+        purchasePrice: true,
         sellingPrice: true,
         unit: true,
       },
+    });
+
+    let totalInventoryValue = 0; // Total Retail Selling Value of stock
+    let totalPurchaseValue = 0;  // Total Cost Basis Value of stock
+
+    allProducts.forEach((p) => {
+      if (p.currentStock > 0) {
+        totalInventoryValue += (p.sellingPrice || 0) * p.currentStock;
+        totalPurchaseValue += (p.purchasePrice || 0) * p.currentStock;
+      }
     });
 
     const lowStockProducts = allProducts.filter(
@@ -114,6 +125,8 @@ router.get('/stats', authenticate, async (req: AuthenticatedRequest, res: Respon
     return res.json({
       totalProducts,
       totalInventory,
+      totalInventoryValue,
+      totalPurchaseValue,
       todaySales,
       todayTransactions,
       lowStockCount: lowStockProducts.length,
