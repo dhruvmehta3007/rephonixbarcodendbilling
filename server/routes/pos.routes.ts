@@ -144,30 +144,46 @@ router.post('/checkout', authenticate, async (req: AuthenticatedRequest, res: Re
       }
     }
 
-    // 2. Perform accurate decimal calculations on server side
+    // 2. Perform accurate decimal calculations on server side (Tax-Inclusive GST calculation)
     let orderSubtotal = 0;
     let orderTax = 0;
     let orderDiscount = 0;
 
     const calculatedItems = items.map((cartItem) => {
       const prod = productMap.get(cartItem.productId)!;
-      // Allow custom selling amount entered by user for each device, fallback to product catalog sellingPrice
-      const unitPrice = typeof cartItem.sellingPrice === 'number'
+      // The total selling amount entered by user for this device (inclusive of GST)
+      const grossPrice = typeof cartItem.sellingPrice === 'number'
         ? cartItem.sellingPrice
         : (typeof cartItem.price === 'number'
           ? cartItem.price
           : (typeof cartItem.unitPrice === 'number' ? cartItem.unitPrice : prod.sellingPrice));
       const unitCost = prod.purchasePrice;
       const quantity = cartItem.quantity;
-      const discount = Math.min(unitPrice * quantity, round2(cartItem.discount || 0));
+      const discount = Math.min(grossPrice * quantity, round2(cartItem.discount || 0));
 
-      const lineSubtotal = round2(unitPrice * quantity - discount);
-      // DO NOT automatically add GST: taxRate defaults to 0
-      const taxRate = typeof cartItem.taxRate === 'number' ? cartItem.taxRate : 0;
-      const lineTax = round2((lineSubtotal * taxRate) / 100);
-      const lineTotal = round2(lineSubtotal + lineTax);
+      // Resolve tax rate: check item, then product, then store default (typically 18% for mobile/electronics)
+      const taxRate = typeof cartItem.taxRate === 'number' && cartItem.taxRate > 0
+        ? cartItem.taxRate
+        : (typeof prod.taxRate === 'number' && prod.taxRate > 0
+          ? prod.taxRate
+          : (settings?.taxRateDefault || 18));
 
-      orderSubtotal += lineSubtotal;
+      // GST-inclusive breakdown formula:
+      // totalWithTax = grossPrice * quantity - discount (e.g. ₹100)
+      // taxableSubtotal = totalWithTax / (1 + taxRate / 100) (e.g. 100 / 1.18 = ₹84.75)
+      // taxAmount = totalWithTax - taxableSubtotal (e.g. 100 - 84.75 = ₹15.25)
+      const totalWithTax = round2(grossPrice * quantity - discount);
+      let taxableSubtotal = totalWithTax;
+      let lineTax = 0;
+
+      if (taxRate > 0) {
+        taxableSubtotal = round2(totalWithTax / (1 + taxRate / 100));
+        lineTax = round2(totalWithTax - taxableSubtotal);
+      }
+
+      const taxableUnitPrice = quantity > 0 ? round2(taxableSubtotal / quantity) : taxableSubtotal;
+
+      orderSubtotal += taxableSubtotal;
       orderTax += lineTax;
       orderDiscount += discount;
 
@@ -175,14 +191,14 @@ router.post('/checkout', authenticate, async (req: AuthenticatedRequest, res: Re
         productId: prod.id,
         productName: prod.name,
         barcode: cartItem.imei || cartItem.deviceBarcode || prod.barcode,
-        unitPrice,
+        unitPrice: taxableUnitPrice,
         unitCost,
         quantity,
         discount,
         taxRate,
         taxAmount: lineTax,
-        subtotal: lineSubtotal,
-        total: lineTotal,
+        subtotal: taxableSubtotal,
+        total: totalWithTax,
       };
     });
 

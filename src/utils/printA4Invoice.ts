@@ -39,18 +39,23 @@ export function printA4Invoice({ sale, shopSettings }: PrintInvoiceOptions) {
 
   const itemsHtml = (sale.items || [])
     .map(
-      (item: any, idx: number) => `
+      (item: any, idx: number) => {
+        const itemTaxRate = Number(item.taxRate || 0);
+        const itemTaxAmt = Number(item.taxAmount || 0);
+        return `
       <tr>
         <td style="padding: 8px 6px; text-align: center; border-bottom: 1px solid #e2e8f0; font-family: monospace; color: #64748b;">${idx + 1}</td>
         <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0;">
           <div style="font-weight: 700; color: #0f172a; font-size: 13px;">${item.productName || 'Product'}</div>
           ${item.barcode ? `<div style="font-size: 11px; font-family: monospace; color: #1e40af; margin-top: 2px;">IMEI / Unique Barcode: ${item.barcode}</div>` : ''}
+          ${itemTaxAmt > 0 ? `<div style="font-size: 10px; color: #64748b; margin-top: 2px;">GST (${itemTaxRate}%): ₹${itemTaxAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>` : ''}
         </td>
         <td style="padding: 8px 10px; text-align: center; font-family: monospace; font-weight: 700; border-bottom: 1px solid #e2e8f0;">${item.quantity}</td>
         <td style="padding: 8px 10px; text-align: right; font-family: monospace; border-bottom: 1px solid #e2e8f0;">₹${Number(item.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
         <td style="padding: 8px 10px; text-align: right; font-family: monospace; font-weight: 700; color: #0f172a; border-bottom: 1px solid #e2e8f0;">₹${Number(item.total || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
       </tr>
-    `
+    `;
+      }
     )
     .join('');
 
@@ -260,14 +265,14 @@ export function printA4Invoice({ sale, shopSettings }: PrintInvoiceOptions) {
     <div class="totals-area">
       <div class="totals-table">
         <div class="totals-row">
-          <span>Sub Total:</span>
+          <span>Taxable Subtotal:</span>
           <span style="font-family: monospace; font-weight: 700;">₹${subtotal}</span>
         </div>
         ${
           sale.taxAmount > 0
             ? `<div class="totals-row">
-                 <span>GST / Tax:</span>
-                 <span style="font-family: monospace; font-weight: 700;">₹${Number(sale.taxAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                 <span>GST Included:</span>
+                 <span style="font-family: monospace; font-weight: 700; color: #047857;">₹${Number(sale.taxAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                </div>`
             : ''
         }

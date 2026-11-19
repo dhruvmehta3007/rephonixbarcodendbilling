@@ -279,7 +279,7 @@ export default function PosPage() {
             name: product.name,
             barcode: resolvedImei || product.barcode,
             price: finalPrice,
-            taxRate: 0, // DO NOT automatically add GST
+            taxRate: product.taxRate || defaultRate,
             quantity: 1,
             discount: 0,
             maxStock: product.currentStock,
@@ -329,10 +329,29 @@ export default function PosPage() {
     setCart((prev) => prev.filter((item) => item.cartItemId !== cartItemId));
   };
 
-  // Calculate Order Totals (NO automatic GST added: final price equals entered selling amount)
-  const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity - item.discount), 0);
-  const taxAmount = 0; // Don't automatically add GST
-  const totalAmount = Math.round(subtotal * 100) / 100;
+  // Calculate Order Totals with automatic GST breakdown from inclusive selling price
+  const defaultRate = shopSettings?.taxRateDefault ?? 18;
+  let calculatedTaxableSubtotal = 0;
+  let calculatedTaxAmount = 0;
+  let totalAmount = 0;
+
+  cart.forEach((item) => {
+    const grossLineTotal = item.price * item.quantity - item.discount;
+    totalAmount += grossLineTotal;
+    const rate = typeof item.taxRate === 'number' && item.taxRate > 0 ? item.taxRate : defaultRate;
+    if (rate > 0) {
+      const taxable = Math.round((grossLineTotal / (1 + rate / 100)) * 100) / 100;
+      const tax = Math.round((grossLineTotal - taxable) * 100) / 100;
+      calculatedTaxableSubtotal += taxable;
+      calculatedTaxAmount += tax;
+    } else {
+      calculatedTaxableSubtotal += grossLineTotal;
+    }
+  });
+
+  calculatedTaxableSubtotal = Math.round(calculatedTaxableSubtotal * 100) / 100;
+  calculatedTaxAmount = Math.round(calculatedTaxAmount * 100) / 100;
+  totalAmount = Math.round(totalAmount * 100) / 100;
   const numCashReceived = parseFloat(cashReceived) || 0;
   const changeAmount = paymentMethod === 'CASH' ? Math.max(0, numCashReceived - totalAmount) : 0;
 
@@ -357,7 +376,7 @@ export default function PosPage() {
           sellingPrice: i.price,
           price: i.price,
           discount: i.discount,
-          taxRate: 0,
+          taxRate: i.taxRate || defaultRate,
         })),
         customerId: selectedCustomerId || undefined,
         paymentMethod,
@@ -650,12 +669,12 @@ export default function PosPage() {
         <div className="p-4 border-t border-black/[0.08] bg-[#fbfbfd] space-y-3.5">
           <div className="space-y-1.5 text-xs text-slate-600">
             <div className="flex justify-between">
-              <span>Subtotal:</span>
-              <span className="font-mono font-semibold text-slate-900">₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              <span>Taxable Subtotal:</span>
+              <span className="font-mono font-semibold text-slate-900">₹{calculatedTaxableSubtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
             </div>
             <div className="flex justify-between">
-              <span>Taxes (GST):</span>
-              <span className="font-mono font-semibold text-slate-900">₹0.00</span>
+              <span>GST Included:</span>
+              <span className="font-mono font-semibold text-emerald-700">₹{calculatedTaxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
             </div>
             <div className="flex justify-between items-baseline pt-2 border-t border-slate-200">
               <span className="text-sm font-bold text-slate-900">Payable Total:</span>
