@@ -11,6 +11,10 @@ const adjustSchema = z.object({
   quantityChange: z.number().int().refine((val) => val !== 0, 'Quantity change cannot be zero'),
   type: z.enum(['ADJUSTMENT', 'DAMAGE', 'RETURN', 'PURCHASE']),
   reason: z.string().min(3, 'Adjustment reason must be at least 3 characters'),
+  units: z.array(z.object({
+    imei: z.string(),
+    customValue: z.string().optional().nullable(),
+  })).optional(),
 });
 
 // GET /api/inventory/movements - Full immutable stock movement ledger
@@ -62,7 +66,7 @@ router.post('/adjust', authenticate, async (req: AuthenticatedRequest, res: Resp
       return res.status(400).json({ error: parse.error.issues[0].message });
     }
 
-    const { productId, quantityChange, type, reason } = parse.data;
+    const { productId, quantityChange, type, reason, units } = parse.data;
 
     // Check product exists
     const product = await prisma.product.findUnique({ where: { id: productId } });
@@ -79,6 +83,35 @@ router.post('/adjust', authenticate, async (req: AuthenticatedRequest, res: Resp
       return res.status(400).json({
         error: `Insufficient stock. Current stock is ${product.currentStock}, cannot reduce by ${Math.abs(quantityChange)}.`,
       });
+    }
+
+    // If units were provided for stock addition, validate them
+    const cleanUnits = (units || [])
+      .map(u => ({ imei: u.imei.trim(), customValue: u.customValue?.trim() || null }))
+      .filter(u => Boolean(u.imei));
+
+    if (quantityChange > 0 && cleanUnits.length > 0) {
+      // Check for internal duplicates
+      const imeis = cleanUnits.map(u => u.imei);
+      const uniqueImeis = new Set(imeis);
+      if (uniqueImeis.size !== imeis.length) {
+        return res.status(400).json({ error: 'Duplicate IMEI / Barcode numbers in the intake list. Each unit must be unique.' });
+      }
+
+      // Check against existing devices in database
+      const existingConflict = await prisma.deviceUnit.findFirst({
+        where: {
+          OR: [
+            { imei1: { in: imeis } },
+            { barcode: { in: imeis } }
+          ]
+        }
+      });
+      if (existingConflict) {
+        return res.status(400).json({
+          error: `IMEI / Barcode "${existingConflict.imei1 || existingConflict.barcode}" already exists in the system!`
+        });
+      }
     }
 
     // Atomic update of stock and ledger creation
@@ -100,7 +133,29 @@ router.post('/adjust', authenticate, async (req: AuthenticatedRequest, res: Resp
         },
       });
 
-      return { product: updatedProduct, movement };
+      // If distinct units are provided (e.g. adding 3 units with 3 IMEIs), register them as DeviceUnits
+      const createdUnits = [];
+      if (quantityChange > 0 && cleanUnits.length > 0) {
+        for (const u of cleanUnits) {
+          const dev = await tx.deviceUnit.create({
+            data: {
+              productId,
+              barcode: u.imei,
+              imei1: u.imei,
+              purchasePrice: product.purchasePrice || 0,
+              customValue: u.customValue || product.customValue || null,
+              condition: 'NEW',
+              status: 'IN_STOCK',
+              supplierId: product.supplierId || null,
+              purchaseDate: new Date(),
+              notes: `Stock Addition via Inventory: ${reason}`,
+            }
+          });
+          createdUnits.push(dev);
+        }
+      }
+
+      return { product: updatedProduct, movement, units: createdUnits };
     });
 
     await createAuditLog({

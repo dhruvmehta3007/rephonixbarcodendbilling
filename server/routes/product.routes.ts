@@ -391,37 +391,70 @@ router.put('/:id', authenticate, requireAdmin, async (req: AuthenticatedRequest,
         });
       }
 
-      // Synchronize associated DeviceUnit
-      const newBarcode = data.barcode || existing.barcode;
-      const existingUnits = await tx.deviceUnit.findMany({ where: { productId: id } });
-      if (existingUnits.length > 0) {
-        for (const u of existingUnits) {
-          await tx.deviceUnit.update({
-            where: { id: u.id },
+      // If new units with distinct IMEIs were added in edit mode, register each one
+      if (data.units && data.units.length > 0) {
+        for (const u of data.units) {
+          const cleanImei = u.imei.trim();
+          if (!cleanImei) continue;
+
+          // Check if this IMEI already exists
+          const existingDevice = await tx.deviceUnit.findFirst({
+            where: {
+              OR: [{ barcode: cleanImei }, { imei1: cleanImei }]
+            }
+          });
+
+          if (!existingDevice) {
+            await tx.deviceUnit.create({
+              data: {
+                productId: id,
+                barcode: cleanImei,
+                imei1: cleanImei,
+                purchasePrice: data.purchasePrice || 0,
+                customValue: u.customValue?.trim() || data.customValue || existing.customValue || null,
+                condition: 'NEW',
+                status: 'IN_STOCK',
+                supplierId: data.supplierId && data.supplierId.trim() !== '' ? data.supplierId : null,
+                purchaseDate: new Date(),
+                notes: 'Added stock unit via Edit Product',
+              }
+            });
+          }
+        }
+      } else {
+        // Synchronize default associated DeviceUnit if no granular units array
+        const newBarcode = data.barcode || existing.barcode;
+        const existingUnits = await tx.deviceUnit.findMany({ where: { productId: id } });
+        if (existingUnits.length > 0) {
+          // If only 1 unit exists, keep it in sync with base barcode
+          if (existingUnits.length === 1) {
+            await tx.deviceUnit.update({
+              where: { id: existingUnits[0].id },
+              data: {
+                barcode: newBarcode,
+                imei1: newBarcode,
+                purchasePrice: data.purchasePrice,
+                customValue: data.customValue !== undefined ? data.customValue : existing.customValue,
+                supplierId: data.supplierId && data.supplierId.trim() !== '' ? data.supplierId : null,
+              },
+            });
+          }
+        } else {
+          await tx.deviceUnit.create({
             data: {
+              productId: id,
               barcode: newBarcode,
               imei1: newBarcode,
-              purchasePrice: data.purchasePrice,
+              purchasePrice: data.purchasePrice || 0,
               customValue: data.customValue !== undefined ? data.customValue : existing.customValue,
+              condition: 'NEW',
+              status: 'IN_STOCK',
               supplierId: data.supplierId && data.supplierId.trim() !== '' ? data.supplierId : null,
+              purchaseDate: new Date(),
+              notes: 'Auto-registered unit on product update',
             },
           });
         }
-      } else {
-        await tx.deviceUnit.create({
-          data: {
-            productId: id,
-            barcode: newBarcode,
-            imei1: newBarcode,
-            purchasePrice: data.purchasePrice || 0,
-            customValue: data.customValue !== undefined ? data.customValue : existing.customValue,
-            condition: 'NEW',
-            status: 'IN_STOCK',
-            supplierId: data.supplierId && data.supplierId.trim() !== '' ? data.supplierId : null,
-            purchaseDate: new Date(),
-            notes: 'Auto-registered unit on product update',
-          },
-        });
       }
 
       return resProduct;

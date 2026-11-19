@@ -116,7 +116,7 @@ export default function ProductsPage() {
 
   const openEditModal = (p: any) => {
     setEditingProduct(p);
-    setUnitItems([{ imei: p.barcode || '', customValue: p.customValue || '' }]);
+    setUnitItems([]);
     setFormData({
       name: p.name,
       barcode: p.barcode || '',
@@ -169,7 +169,45 @@ export default function ProductsPage() {
 
     try {
       if (editingProduct) {
-        await api.products.update(editingProduct.id, formData);
+        // Collect any additional units added in edit mode
+        const cleanAdditionalUnits = unitItems
+          .map((u) => ({ imei: u.imei.trim(), customValue: u.customValue.trim() }))
+          .filter((u) => Boolean(u.imei));
+
+        const updatedStock = editingProduct.currentStock + cleanAdditionalUnits.length;
+
+        await api.products.update(editingProduct.id, {
+          ...formData,
+          currentStock: updatedStock,
+          units: cleanAdditionalUnits,
+        });
+
+        if (printLabelImmediately && cleanAdditionalUnits.length > 0) {
+          const itemsToPrint = cleanAdditionalUnits.map((u) => ({
+            name: formData.name,
+            barcode: u.imei,
+            customValue: u.customValue || formData.customValue || '',
+            price: formData.sellingPrice || 0,
+            quantity: 1,
+          }));
+
+          try {
+            await api.print.directTSPL({
+              printerName: '4BARCODE 4B-2054TG',
+              labelSize: '50x25',
+              items: itemsToPrint,
+            });
+          } catch {
+            const tsplCode = buildCellPointTSPLJob(itemsToPrint, {
+              gapMM: 3,
+              labelSize: '50x25',
+              widthMM: 50,
+              heightMM: 25,
+            });
+            await sendRawToSerialPrinter(tsplCode, 9600);
+          }
+        }
+
         setIsModalOpen(false);
         loadProducts();
       } else {
@@ -556,33 +594,51 @@ export default function ProductsPage() {
                   </select>
                 </div>
 
-                {editingProduct ? (
-                  <div className="sm:col-span-2 p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                {editingProduct && (
+                  <div className="sm:col-span-2 p-3.5 bg-blue-50/40 border border-blue-200/80 rounded-xl flex items-center justify-between">
                     <div>
-                      <div className="text-xs font-bold text-slate-800">Tracked Units In Stock</div>
-                      <div className="text-[11px] text-slate-500">Each piece is individually tracked with its IMEI in the Device Barcodes tab</div>
+                      <div className="text-xs font-bold text-slate-800">Existing Tracked Units In Stock</div>
+                      <div className="text-[11px] text-slate-500">Currently {editingProduct.currentStock} unit(s) recorded. You can add more units below with distinct IMEIs.</div>
                     </div>
-                    <span className="text-xs font-black text-slate-900 bg-white border border-slate-200 px-3 py-1 rounded-lg">
-                      {editingProduct.currentStock} Units in Stock
+                    <span className="text-xs font-black text-blue-900 bg-white border border-blue-200 px-3 py-1 rounded-lg">
+                      {editingProduct.currentStock} in stock
                     </span>
                   </div>
-                ) : (
-                  <div className="sm:col-span-2 pt-2 border-t border-slate-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
-                        <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
-                          <Smartphone size={15} className="text-blue-600" />
-                          Device Units & IMEIs (1 IMEI = 1 Piece) *
-                        </span>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
-                          Enter 15-digit IMEI and your secret buying cost code (printed left of MRP on sticker).
-                        </p>
-                      </div>
-                      <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-800 border border-blue-200">
-                        {unitItems.filter((u) => u.imei.trim()).length} Unit(s) In Stock
-                      </span>
-                    </div>
+                )}
 
+                <div className="sm:col-span-2 pt-2 border-t border-slate-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                        <Smartphone size={15} className="text-blue-600" />
+                        {editingProduct ? 'Add More Stock (Individual IMEIs / Barcodes)' : 'Device Units & IMEIs (1 IMEI = 1 Piece) *'}
+                      </span>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        {editingProduct 
+                          ? 'Each new unit will be assigned its unique IMEI barcode & added to current stock.' 
+                          : 'Enter 15-digit IMEI and your secret buying cost code (printed left of MRP on sticker).'}
+                      </p>
+                    </div>
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-800 border border-blue-200">
+                      {editingProduct 
+                        ? `+${unitItems.filter((u) => u.imei.trim()).length} New Piece(s)` 
+                        : `${unitItems.filter((u) => u.imei.trim()).length} Unit(s) In Stock`}
+                    </span>
+                  </div>
+
+                  {unitItems.length === 0 && editingProduct ? (
+                    <div className="p-4 bg-slate-50 border border-dashed border-slate-300 rounded-xl text-center">
+                      <p className="text-xs text-slate-600 font-medium mb-2.5">Want to add more inventory stock for this model?</p>
+                      <button
+                        type="button"
+                        onClick={addUnitItem}
+                        className="px-3.5 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl border border-blue-200 inline-flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                      >
+                        <Plus size={14} className="stroke-[2.5]" />
+                        <span>Add New Stock Unit (+1 IMEI)</span>
+                      </button>
+                    </div>
+                  ) : (
                     <div className="space-y-2.5">
                       {unitItems.map((unit, idx) => (
                         <div key={idx} className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
@@ -623,7 +679,7 @@ export default function ProductsPage() {
                             >
                               Gen IMEI
                             </button>
-                            {unitItems.length > 1 && (
+                            {(unitItems.length > 1 || editingProduct) && (
                               <button
                                 type="button"
                                 onClick={() => removeUnitItem(idx)}
@@ -636,18 +692,18 @@ export default function ProductsPage() {
                           </div>
                         </div>
                       ))}
-                    </div>
 
-                    <button
-                      type="button"
-                      onClick={addUnitItem}
-                      className="mt-3 px-3.5 py-2 text-xs font-bold text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100/80 rounded-xl border border-blue-200 flex items-center gap-1.5 transition-all cursor-pointer"
-                    >
-                      <Plus size={14} className="stroke-[2.5]" />
-                      <span>Add Another IMEI for this Model</span>
-                    </button>
-                  </div>
-                )}
+                      <button
+                        type="button"
+                        onClick={addUnitItem}
+                        className="mt-3 px-3.5 py-2 text-xs font-bold text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100/80 rounded-xl border border-blue-200 flex items-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <Plus size={14} className="stroke-[2.5]" />
+                        <span>Add Another IMEI for this Model</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="p-4 border-t border-slate-200 -mx-6 -mb-6 mt-6 bg-[#fbfbfd] flex items-center justify-end gap-2.5">

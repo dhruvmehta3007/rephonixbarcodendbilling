@@ -9,9 +9,11 @@ import {
   Plus, 
   Minus, 
   User, 
-  Calendar,
-  X,
-  FileSpreadsheet
+  Calendar, 
+  X, 
+  FileSpreadsheet,
+  Smartphone,
+  Tag
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -26,9 +28,10 @@ export default function InventoryPage() {
   const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [adjustQty, setAdjustQty] = useState<number>(0);
-  const [adjustType, setAdjustType] = useState<'ADJUSTMENT' | 'DAMAGE' | 'RETURN'>('ADJUSTMENT');
+  const [adjustType, setAdjustType] = useState<'ADJUSTMENT' | 'DAMAGE' | 'RETURN' | 'PURCHASE'>('PURCHASE');
   const [adjustReason, setAdjustReason] = useState('');
   const [adjustError, setAdjustError] = useState<string | null>(null);
+  const [newUnits, setNewUnits] = useState<{ imei: string; customValue: string }[]>([]);
 
   useEffect(() => {
     loadData();
@@ -58,10 +61,41 @@ export default function InventoryPage() {
   const openAdjustModal = (product: any) => {
     setSelectedProduct(product);
     setAdjustQty(1);
-    setAdjustType('ADJUSTMENT');
-    setAdjustReason('Periodic physical inventory count adjustment');
+    setAdjustType('PURCHASE');
+    setAdjustReason('Stock inward / intake');
     setAdjustError(null);
+    setNewUnits([{ imei: '', customValue: product.customValue || '' }]);
     setIsAdjustModalOpen(true);
+  };
+
+  const addNewUnitRow = () => {
+    const prevCost = newUnits[newUnits.length - 1]?.customValue || selectedProduct?.customValue || '';
+    const updated = [...newUnits, { imei: '', customValue: prevCost }];
+    setNewUnits(updated);
+    setAdjustQty(updated.length);
+  };
+
+  const removeNewUnitRow = (index: number) => {
+    const updated = newUnits.filter((_, i) => i !== index);
+    setNewUnits(updated);
+    setAdjustQty(updated.length);
+  };
+
+  const updateNewUnitRow = (index: number, field: 'imei' | 'customValue', value: string) => {
+    setNewUnits(prev => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: value };
+      return copy;
+    });
+  };
+
+  const generateRandomImei = (index: number) => {
+    const prefix = '35';
+    let randomDigits = '';
+    for (let i = 0; i < 13; i++) {
+      randomDigits += Math.floor(Math.random() * 10).toString();
+    }
+    updateNewUnitRow(index, 'imei', `${prefix}${randomDigits}`);
   };
 
   const handleAdjustSubmit = async (e: React.FormEvent) => {
@@ -74,11 +108,27 @@ export default function InventoryPage() {
         throw new Error('Quantity change cannot be zero');
       }
 
+      // If increasing stock, validate units if provided
+      if (adjustQty > 0) {
+        const filledUnits = newUnits.map(u => ({ imei: u.imei.trim(), customValue: u.customValue.trim() })).filter(u => Boolean(u.imei));
+        if (filledUnits.length > 0) {
+          if (filledUnits.length !== adjustQty) {
+            throw new Error(`You specified adding ${adjustQty} unit(s), but provided ${filledUnits.length} IMEI(s). Please provide exactly 1 unique IMEI per unit added.`);
+          }
+          const imeis = filledUnits.map(u => u.imei);
+          const uniqueImeis = new Set(imeis);
+          if (uniqueImeis.size !== imeis.length) {
+            throw new Error('Duplicate IMEI numbers entered. Every device piece must have a unique IMEI.');
+          }
+        }
+      }
+
       await api.inventory.adjustStock({
         productId: selectedProduct.id,
         quantityChange: Number(adjustQty),
         type: adjustType,
         reason: adjustReason,
+        units: adjustQty > 0 ? newUnits.filter(u => Boolean(u.imei.trim())) : undefined,
       });
 
       setIsAdjustModalOpen(false);
@@ -327,18 +377,18 @@ export default function InventoryPage() {
       {/* ================= MANUAL ADJUSTMENT MODAL ================= */}
       {isAdjustModalOpen && selectedProduct && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+          <div className="w-full max-w-lg bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="p-5 border-b border-slate-100 bg-[#fbfbfd] flex items-center justify-between">
               <div>
-                <h3 className="text-base font-extrabold text-slate-900">Manual Stock Adjustment</h3>
+                <h3 className="text-base font-extrabold text-slate-900">Inventory Stock Intake & Adjustment</h3>
                 <p className="text-xs text-slate-600 font-medium mt-0.5">{selectedProduct.name} (Current: {selectedProduct.currentStock} {selectedProduct.unit})</p>
               </div>
-              <button onClick={() => setIsAdjustModalOpen(false)} className="text-slate-500 hover:text-slate-900">
+              <button onClick={() => setIsAdjustModalOpen(false)} className="text-slate-500 hover:text-slate-900 cursor-pointer">
                 <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleAdjustSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleAdjustSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
               {adjustError && (
                 <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
                   {adjustError}
@@ -346,16 +396,16 @@ export default function InventoryPage() {
               )}
 
               <div>
-                <label className="block text-xs font-bold text-slate-800 mb-1.5">Adjustment Type</label>
+                <label className="block text-xs font-bold text-slate-800 mb-1.5">Adjustment Action</label>
                 <select
                   value={adjustType}
                   onChange={(e) => setAdjustType(e.target.value as any)}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
                 >
+                  <option value="PURCHASE">Add Stock / New Units Intake (+)</option>
                   <option value="ADJUSTMENT">Stock Adjustment (Audit / Recount)</option>
-                  <option value="DAMAGE">Damaged / Expired Product (Write-off)</option>
-                  <option value="RETURN">Customer Return / Exchange</option>
-                  <option value="PURCHASE">Direct Inventory Inward</option>
+                  <option value="DAMAGE">Damaged / Expired Product (Write-off) (-)</option>
+                  <option value="RETURN">Customer Return / Exchange (+)</option>
                 </select>
               </div>
 
@@ -368,7 +418,23 @@ export default function InventoryPage() {
                   step="1"
                   required
                   value={adjustQty}
-                  onChange={(e) => setAdjustQty(parseInt(e.target.value, 10) || 0)}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10) || 0;
+                    setAdjustQty(val);
+                    if (val > 0 && newUnits.length !== val) {
+                      // Synchronize newUnits array length with requested quantity
+                      const current = [...newUnits];
+                      const prevCost = current[current.length - 1]?.customValue || selectedProduct?.customValue || '';
+                      if (val > current.length) {
+                        for (let i = current.length; i < val; i++) {
+                          current.push({ imei: '', customValue: prevCost });
+                        }
+                      } else {
+                        current.splice(val);
+                      }
+                      setNewUnits(current);
+                    }
+                  }}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono text-base font-black text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
                 />
                 <div className="text-xs text-slate-600 font-medium mt-1.5">
@@ -376,11 +442,79 @@ export default function InventoryPage() {
                 </div>
               </div>
 
+              {/* Individual Device Units & IMEIs Section for Inward Stock */}
+              {adjustQty > 0 && (
+                <div className="p-3.5 bg-blue-50/50 border border-blue-200/80 rounded-2xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-black text-blue-950 flex items-center gap-1.5">
+                        <Smartphone size={15} className="text-blue-600" />
+                        <span>Individual Device Barcodes / IMEIs ({newUnits.length} Units)</span>
+                      </div>
+                      <div className="text-[11px] text-blue-700 mt-0.5">
+                        Scan or enter 15-digit IMEI for each piece added. Each piece gets its own unique tracking.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    {newUnits.map((u, idx) => (
+                      <div key={idx} className="p-2.5 bg-white border border-blue-200 rounded-xl flex items-center gap-2 shadow-2xs">
+                        <span className="text-xs font-mono font-bold text-slate-400 w-5 text-right shrink-0">#{idx + 1}</span>
+                        <input
+                          type="text"
+                          required
+                          value={u.imei}
+                          onChange={(e) => updateNewUnitRow(idx, 'imei', e.target.value)}
+                          placeholder="Scan / Type IMEI *"
+                          className="flex-1 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg font-mono text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-500"
+                        />
+                        <input
+                          type="text"
+                          value={u.customValue}
+                          onChange={(e) => updateNewUnitRow(idx, 'customValue', e.target.value)}
+                          placeholder="Buying Code"
+                          title="Buying price secret code printed on sticker"
+                          className="w-24 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg font-mono text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => generateRandomImei(idx)}
+                          className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded-md border border-slate-300 transition-colors cursor-pointer shrink-0"
+                          title="Generate random 15-digit test IMEI"
+                        >
+                          Gen
+                        </button>
+                        {newUnits.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeNewUnitRow(idx)}
+                            className="p-1 text-rose-500 hover:bg-rose-50 rounded-md transition-colors cursor-pointer shrink-0"
+                            title="Remove unit"
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={addNewUnitRow}
+                    className="w-full py-2 bg-white hover:bg-blue-100/50 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+                  >
+                    <Plus size={14} className="stroke-[2.5]" />
+                    <span>Add Another Device IMEI (+1 Unit)</span>
+                  </button>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-bold text-slate-800 mb-1.5">Audit Reason / Justification *</label>
                 <textarea
                   required
-                  rows={3}
+                  rows={2}
                   value={adjustReason}
                   onChange={(e) => setAdjustReason(e.target.value)}
                   placeholder="Mandatory reason code for inventory ledger recording..."
@@ -392,15 +526,15 @@ export default function InventoryPage() {
                 <button
                   type="button"
                   onClick={() => setIsAdjustModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-bold transition-colors"
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-bold transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-[#0071e3] hover:bg-blue-600 text-white font-bold text-xs shadow-md shadow-blue-600/30 transition-all active:scale-95"
+                  className="px-5 py-2 rounded-xl bg-[#0071e3] hover:bg-blue-600 text-white font-bold text-xs shadow-md shadow-blue-600/30 transition-all active:scale-95 cursor-pointer"
                 >
-                  Commit Adjustment
+                  Confirm & Update Stock
                 </button>
               </div>
             </form>
