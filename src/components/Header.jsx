@@ -34,8 +34,8 @@ export default function Header({
   sampleDataCount,
 }) {
   const quickSizes = [
-    { label: 'CellPoint Standard (30x15 mm)', w: PRINTER_CONFIG.widthMM, h: PRINTER_CONFIG.heightMM },
-    { label: 'CellPoint Compact (40x20 mm)', w: 40, h: 20 },
+    { label: 'Rephonix Standard (30x15 mm)', w: PRINTER_CONFIG.widthMM, h: PRINTER_CONFIG.heightMM },
+    { label: 'Rephonix Compact (40x20 mm)', w: 40, h: 20 },
     { label: 'Mobile IMEI (50x30 mm)', w: 50, h: 30 },
     { label: 'Retail Tag (50x25 mm)', w: 50, h: 25 },
     { label: 'Shipping Box (100x150 mm)', w: 100, h: 150 },
@@ -69,7 +69,7 @@ export default function Header({
             </svg>
           </div>
           <span style={{ letterSpacing: '-0.3px' }}>
-            The Cell Point <span style={{ color: '#60a5fa', fontWeight: 600 }}>Barcode</span>
+            Rephonix <span style={{ color: '#60a5fa', fontWeight: 600 }}>Barcode</span>
           </span>
         </div>
         <span className="brand-badge">Enterprise v2.4</span>

@@ -7,7 +7,7 @@ using System.Reflection;
 using System.Threading;
 using System.Windows.Forms;
 
-namespace TheCellPointInstaller
+namespace RephonixInstaller
 {
     public class SetupForm : Form
     {
@@ -30,7 +30,7 @@ namespace TheCellPointInstaller
 
         private void InitializeComponent()
         {
-            this.Text = "THE CELL POINT - Setup Wizard";
+            this.Text = "Rephonix - Setup Wizard";
             this.Size = new Size(540, 380);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -48,7 +48,7 @@ namespace TheCellPointInstaller
 
             lblTitle = new Label
             {
-                Text = "THE CELL POINT",
+                Text = "Rephonix",
                 Font = new Font("Segoe UI", 15f, FontStyle.Bold),
                 ForeColor = Color.FromArgb(29, 78, 216),
                 Location = new Point(22, 14),
@@ -76,7 +76,7 @@ namespace TheCellPointInstaller
             };
             this.Controls.Add(lblDir);
 
-            string defaultDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "THE CELL POINT");
+            string defaultDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Rephonix");
 
             txtInstallDir = new TextBox
             {
@@ -101,7 +101,7 @@ namespace TheCellPointInstaller
                     fbd.SelectedPath = txtInstallDir.Text;
                     if (fbd.ShowDialog() == DialogResult.OK)
                     {
-                        txtInstallDir.Text = Path.Combine(fbd.SelectedPath, "THE CELL POINT");
+                        txtInstallDir.Text = Path.Combine(fbd.SelectedPath, "Rephonix");
                     }
                 }
             };
@@ -201,7 +201,7 @@ namespace TheCellPointInstaller
                             throw new Exception("Installer payload resource not found.");
                         }
 
-                        string tempZip = Path.Combine(Path.GetTempPath(), "cellpoint_" + Guid.NewGuid().ToString("N") + ".zip");
+                        string tempZip = Path.Combine(Path.GetTempPath(), "rephonix_" + Guid.NewGuid().ToString("N") + ".zip");
                         using (FileStream fs = new FileStream(tempZip, FileMode.Create, FileAccess.Write))
                         {
                             resStream.CopyTo(fs);
@@ -211,20 +211,20 @@ namespace TheCellPointInstaller
                         try { File.Delete(tempZip); } catch {}
                     }
 
-                    string mainExe = Path.Combine(targetDir, "THE CELL POINT.exe");
+                    string mainExe = Path.Combine(targetDir, "Rephonix.exe");
 
                     if (createDesktop)
                     {
                         UpdateStatus("Creating Desktop shortcut...");
                         string desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-                        CreateShortcut(Path.Combine(desktop, "THE CELL POINT.lnk"), mainExe, targetDir);
+                        CreateShortcut(Path.Combine(desktop, "Rephonix.lnk"), mainExe, targetDir);
                     }
 
                     if (createStart)
                     {
                         UpdateStatus("Creating Start Menu shortcut...");
                         string startMenu = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.StartMenu), "Programs");
-                        CreateShortcut(Path.Combine(startMenu, "THE CELL POINT.lnk"), mainExe, targetDir);
+                        CreateShortcut(Path.Combine(startMenu, "Rephonix.lnk"), mainExe, targetDir);
                     }
 
                     this.Invoke((Action)(() =>
@@ -253,7 +253,7 @@ namespace TheCellPointInstaller
                         lblStatus.Text = "Error: " + ex.Message;
                         lblStatus.ForeColor = Color.Red;
                         btnCancel.Enabled = true;
-                        MessageBox.Show("Installation error: " + ex.Message, "THE CELL POINT Setup", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show("Installation error: " + ex.Message, "Rephonix Setup", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }));
                 }
             }).Start();
@@ -280,7 +280,7 @@ namespace TheCellPointInstaller
                 dynamic shortcut = shell.CreateShortcut(shortcutPath);
                 shortcut.TargetPath = targetPath;
                 shortcut.WorkingDirectory = workDir;
-                shortcut.Description = "THE CELL POINT - Retail POS & Barcode System";
+                shortcut.Description = "Rephonix - Retail POS & Barcode System";
                 shortcut.Save();
             }
             catch {}

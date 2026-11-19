@@ -5,7 +5,7 @@ using System.Net;
 using System.Threading;
 using System.Windows.Forms;
 
-namespace TheCellPoint
+namespace Rephonix
 {
     static class Program
     {
@@ -29,7 +29,7 @@ namespace TheCellPoint
 
         private static void LaunchBrowser(string url)
         {
-            string profileDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TheCellPointProfile");
+            string profileDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "RephonixProfile");
             string appArg = "--app=" + url + " --window-size=1366,850 --user-data-dir=\"" + profileDir + "\"";
 
             string[] candidateBrowsers = new string[]
@@ -73,14 +73,14 @@ namespace TheCellPoint
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Could not open browser automatically: " + ex.Message + "\n\nPlease open your browser and visit: " + url, "THE CELL POINT", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Could not open browser automatically: " + ex.Message + "\n\nPlease open your browser and visit: " + url, "REPHONIX", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
         [STAThread]
         static void Main()
         {
-            string logFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "thecellpoint-launcher.log");
+            string logFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "rephonix-launcher.log");
             try
             {
                 string baseDir = AppDomain.CurrentDomain.BaseDirectory;
@@ -124,7 +124,7 @@ namespace TheCellPoint
                             string err = serverProcess.StandardError.ReadToEnd();
                             string outTxt = serverProcess.StandardOutput.ReadToEnd();
                             File.AppendAllText(logFile, "Node exited prematurely! Code: " + serverProcess.ExitCode + "\nSTDERR: " + err + "\nSTDOUT: " + outTxt + "\n");
-                            MessageBox.Show("Server process closed unexpectedly (Exit Code " + serverProcess.ExitCode + "):\n\n" + (string.IsNullOrEmpty(err) ? outTxt : err), "THE CELL POINT Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            MessageBox.Show("Server process closed unexpectedly (Exit Code " + serverProcess.ExitCode + "):\n\n" + (string.IsNullOrEmpty(err) ? outTxt : err), "REPHONIX Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             return;
                         }
 
@@ -152,7 +152,7 @@ namespace TheCellPoint
             catch (Exception ex)
             {
                 File.AppendAllText(logFile, "Exception: " + ex.ToString() + "\n");
-                MessageBox.Show("Error starting THE CELL POINT: " + ex.Message, "THE CELL POINT", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Error starting REPHONIX: " + ex.Message, "REPHONIX", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }

@@ -46,7 +46,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-500 mx-auto flex items-center justify-center shadow-xl shadow-blue-600/30 mb-4 ring-4 ring-blue-500/20">
             <Store size={32} className="text-white" />
           </div>
-          <h1 className="text-2xl font-black text-white tracking-tight">The Cell Point Barcode</h1>
+          <h1 className="text-2xl font-black text-white tracking-tight">Rephonix Barcode</h1>
           <p className="text-sm text-slate-400 mt-1 font-medium">Smart Retail POS & Device Barcode Suite</p>
         </div>
 

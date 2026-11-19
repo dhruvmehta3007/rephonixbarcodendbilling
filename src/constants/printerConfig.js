@@ -1,5 +1,5 @@
 /**
- * Confirmed Printer Specifications for CellPoint Barcode System
+ * Confirmed Printer Specifications for Rephonix Barcode System
  * 203 DPI Direct Thermal Roll (50mm x 25mm, 400x200 dots landscape)
  */
 export const PRINTER_CONFIG = {

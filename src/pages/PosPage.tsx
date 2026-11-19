@@ -864,7 +864,7 @@ export default function PosPage() {
                   <div className="text-2xl font-black text-blue-700 font-mono">
                     ₹{totalAmount.toLocaleString('en-IN')}
                   </div>
-                  <div className="text-[11px] font-mono text-slate-500">UPI ID: thecellpoint.pay@icici</div>
+                  <div className="text-[11px] font-mono text-slate-500">UPI ID: rephonix.pay@icici</div>
                 </div>
               )}
 

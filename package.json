@@ -70,8 +70,8 @@
     "vitest": "^4.1.12"
   },
   "build": {
-    "appId": "com.thecellpoint.pos",
-    "productName": "THE CELL POINT",
+    "appId": "com.rephonix.pos",
+    "productName": "Rephonix",
     "directories": {
       "output": "release"
     },
@@ -100,7 +100,7 @@
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "THE CELL POINT"
+      "shortcutName": "Rephonix"
     }
   }
 }

@@ -61,8 +61,8 @@ export function buildCellPointTSPLJob(
       const priceWidth = priceText.length * 8;
       const priceX = Math.max(120, 230 - priceWidth);
 
-      // Centered: 14 chars in Font 1 (8x12) = 112 dots -> (240 - 112)/2 = 64
-      commands.push(`TEXT 64,10,"1",0,1,1,"THE CELL POINT"`);
+      // Centered: REPHONIX in Font 1 (8x12) = 8 chars * 8 = 64 dots -> (240 - 64)/2 = 88
+      commands.push(`TEXT 88,10,"1",0,1,1,"REPHONIX"`);
       const nameWidth = cleanName.length * 8;
       const nameX = Math.max(8, Math.floor((240 - nameWidth) / 2));
       commands.push(`TEXT ${nameX},26,"1",0,1,1,"${cleanName}"`);
@@ -79,8 +79,8 @@ export function buildCellPointTSPLJob(
       const cleanName = (item.name || 'PRODUCT').slice(0, 36).toUpperCase().replace(/"/g, '');
       const nameFont = cleanName.length > 22 ? '1' : '2';
 
-      // Header: THE CELL POINT in Font 3 (16x24 dots, 14 chars = 224 dots, centered at X=88, Y=10)
-      commands.push(`TEXT 88,10,"3",0,1,1,"THE CELL POINT"`);
+      // Header: REPHONIX in Font 3 (16x24 dots, 8 chars = 128 dots, centered at X=136, Y=10)
+      commands.push(`TEXT 136,10,"3",0,1,1,"REPHONIX"`);
 
       // Product Name: Configured at X=88, Y=38
       const nameY = nameFont === '2' ? 38 : 40;

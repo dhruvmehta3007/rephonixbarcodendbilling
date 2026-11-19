@@ -66,7 +66,7 @@ export default function Sidebar({ currentTab, setCurrentTab, user, onLogout }: S
           </div>
           <div>
             <div className="font-extrabold text-[15px] tracking-tight text-slate-900 flex items-center gap-1.5">
-              The Cell Point <span className="text-[#0071e3] font-semibold text-[10px] px-2 py-0.5 rounded-full bg-[#0071e3]/10 uppercase tracking-wider">Barcode</span>
+              Rephonix <span className="text-[#0071e3] font-semibold text-[10px] px-2 py-0.5 rounded-full bg-[#0071e3]/10 uppercase tracking-wider">Barcode</span>
             </div>
             <div className="text-[11px] text-[#86868b] font-normal">Smart Retail POS</div>
           </div>

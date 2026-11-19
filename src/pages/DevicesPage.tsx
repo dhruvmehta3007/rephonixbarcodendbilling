@@ -982,7 +982,7 @@ export default function DevicesPage() {
               </button>
             </div>
 
-            {/* Sticker Preview Box: THE CELL POINT (50x25 mm standard 2:1 roll slip) */}
+            {/* Sticker Preview Box: REPHONIX (50x25 mm standard 2:1 roll slip) */}
             <div 
               className="printable-label my-4 p-2 bg-white text-black rounded-lg shadow-xl text-center font-sans border border-slate-300 mx-auto flex flex-col justify-between"
               style={{
@@ -993,9 +993,9 @@ export default function DevicesPage() {
                 overflow: 'hidden',
               }}
             >
-              {/* Header: Centered THE CELL POINT */}
+              {/* Header: Centered REPHONIX */}
               <div className="w-full text-center pb-0.5 shrink-0">
-                <span className="font-black text-[12px] tracking-wider text-black uppercase font-mono">THE CELL POINT</span>
+                <span className="font-black text-[12px] tracking-wider text-black uppercase font-mono">REPHONIX</span>
               </div>
 
               {/* Product / Device Name - Clean reduced left margin */}
@@ -1134,7 +1134,7 @@ export default function DevicesPage() {
         <div id="printable-root" className="printable-labels-container">
           <div className="batch-barcode-sticker">
             <div className="w-full flex items-center justify-center border-b border-black/20 pb-0.5 leading-none">
-              <span className="text-[10px] font-black text-black uppercase tracking-wider mx-auto">THE CELL POINT</span>
+              <span className="text-[10px] font-black text-black uppercase tracking-wider mx-auto">REPHONIX</span>
             </div>
             <div className="w-full text-[8px] font-bold text-black truncate uppercase tracking-tight my-0.5 leading-tight text-left pl-1.5">
               {printDevice.product?.name || 'DEVICE'}

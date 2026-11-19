@@ -1,8 +1,8 @@
-#define MyAppName "THE CELL POINT"
+#define MyAppName "Rephonix"
 #define MyAppVersion "1.0.0"
-#define MyAppPublisher "Cell Point"
-#define MyAppExeName "THE CELL POINT.exe"
-#define MyAppSourceDir "D:\finalbarcodecellpoint\thecellpointbarcode\release\THE CELL POINT"
+#define MyAppPublisher "Rephonix"
+#define MyAppExeName "Rephonix.exe"
+#define MyAppSourceDir "D:\finalbarcodecellpoint\thecellpointbarcode\release\Rephonix"
 
 [Setup]
 AppId={{C38F7F4D-9D25-4D56-8F72-520D841249A2}
@@ -12,7 +12,7 @@ AppPublisher={#MyAppPublisher}
 DefaultDirName={autopf}\{#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=D:\finalbarcodecellpoint\thecellpointbarcode\release
-OutputBaseFilename=THE CELL POINT Setup
+OutputBaseFilename=Rephonix Setup
 Compression=lzma2/fast
 SolidCompression=no
 WizardStyle=modern

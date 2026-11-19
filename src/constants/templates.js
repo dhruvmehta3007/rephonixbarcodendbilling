@@ -5,9 +5,9 @@
 
 export const DEFAULT_TEMPLATES = [
   {
-    id: 'cellpoint_standard_50x25',
-    name: 'CellPoint Standard 50×25 mm (400×200 Dots)',
-    category: 'CellPoint Standard',
+    id: 'rephonix_standard_50x25',
+    name: 'Rephonix Standard 50×25 mm (400×200 Dots)',
+    category: 'Rephonix Standard',
     description: 'Calibrated for 203 DPI thermal roll (50x25 mm, 400x200 dots, 2:1 aspect ratio). Fixed dot boundaries, no margin scaling.',
     width: 50, // mm
     height: 25, // mm
@@ -19,7 +19,7 @@ export const DEFAULT_TEMPLATES = [
       {
         id: 'el_cp_brand',
         type: 'text',
-        content: 'CELL POINT',
+        content: 'REPHONIX',
         x: 1.0,
         y: 0.8,
         width: 17,
@@ -114,9 +114,9 @@ export const DEFAULT_TEMPLATES = [
     },
   },
   {
-    id: 'cellpoint_compact_40x20',
-    name: 'CellPoint 40×20 mm (320×160 Dots)',
-    category: 'CellPoint Standard',
+    id: 'rephonix_compact_40x20',
+    name: 'Rephonix 40×20 mm (320×160 Dots)',
+    category: 'Rephonix Standard',
     description: 'Calibrated for 203 DPI thermal roll (40x20 mm, 320x160 dots, 2:1 aspect ratio).',
     width: 40,
     height: 20,
@@ -128,7 +128,7 @@ export const DEFAULT_TEMPLATES = [
       {
         id: 'el_cp40_brand',
         type: 'text',
-        content: 'CELL POINT',
+        content: 'REPHONIX',
         x: 1.5,
         y: 1.0,
         width: 22,

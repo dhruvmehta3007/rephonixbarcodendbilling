@@ -373,9 +373,9 @@ export default function BarcodePage() {
                         overflow: 'hidden',
                       }}
                     >
-                      {/* THE CELL POINT Brand Header */}
+                      {/* REPHONIX Brand Header */}
                       <div className="w-full flex items-center justify-between border-b border-gray-200 pb-0.5 leading-none">
-                        <span className="text-[10px] font-black text-black uppercase tracking-wider mx-auto">THE CELL POINT</span>
+                        <span className="text-[10px] font-black text-black uppercase tracking-wider mx-auto">REPHONIX</span>
                       </div>
 
                       {/* Device / Product Name (Reduced Left Margin) */}
@@ -437,9 +437,9 @@ export default function BarcodePage() {
         <div id="printable-root" className="printable-labels-container">
           {printableLabels.map((prod, idx) => (
             <div key={idx} className="batch-barcode-sticker">
-              {/* THE CELL POINT Brand Header */}
+              {/* REPHONIX Brand Header */}
               <div className="w-full flex items-center justify-between border-b border-black/20 pb-0.5 leading-none">
-                <span className="text-[10px] font-black text-black uppercase tracking-wider mx-auto">THE CELL POINT</span>
+                <span className="text-[10px] font-black text-black uppercase tracking-wider mx-auto">REPHONIX</span>
               </div>
 
               {/* Device / Product Name (Reduced Left Margin) */}

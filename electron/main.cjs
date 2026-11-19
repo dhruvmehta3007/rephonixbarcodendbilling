@@ -51,7 +51,7 @@ async function startBackendServer() {
     fs.mkdirSync(dbDir, { recursive: true });
   }
 
-  const targetDb = path.join(dbDir, 'cellpoint.db');
+  const targetDb = path.join(dbDir, 'rephonix.db');
 
   // Copy initial template DB if user DB does not exist yet
   const candidateTemplates = [
@@ -95,7 +95,7 @@ async function startBackendServer() {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    title: 'THE CELL POINT',
+    title: 'Rephonix',
     width: 1366,
     height: 850,
     minWidth: 1024,

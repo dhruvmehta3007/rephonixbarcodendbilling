@@ -13,7 +13,7 @@ import { PRINTER_CONFIG, clampElementMm } from '../constants/printerConfig';
 import { renderLabelToRasterDataUrl } from '../utils/rasterGenerator';
 import confetti from 'canvas-confetti';
 
-const INITIAL_TEMPLATE = DEFAULT_TEMPLATES[0]; // CellPoint Standard (30x15 mm / 240x120 Dots)
+const INITIAL_TEMPLATE = DEFAULT_TEMPLATES[0]; // Rephonix Standard (30x15 mm / 240x120 Dots)
 
 export default function App() {
   // Label Media Setup - Calibrated for 203 DPI (30mm x 15mm, 240x120 dots)
@@ -26,7 +26,7 @@ export default function App() {
     borderRadius: 0.8,
   });
 
-  const [selectedPreset, setSelectedPreset] = useState('CellPoint Standard (30x15 mm)');
+  const [selectedPreset, setSelectedPreset] = useState('Rephonix Standard (30x15 mm)');
 
   // Elements on the Canvas
   const [elements, setElements] = useState(INITIAL_TEMPLATE.elements);

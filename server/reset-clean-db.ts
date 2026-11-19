@@ -28,41 +28,41 @@ export async function resetToCleanDatabase() {
   await prisma.shopSettings.upsert({
     where: { id: 'default' },
     update: {
-      shopName: 'The Cell Point',
-      email: 'contact@thecellpoint.com',
+      shopName: 'Rephonix',
+      email: 'contact@rephonix.in',
       taxRateDefault: 0.0,
-      receiptFooter: 'Thank you for shopping with The Cell Point! 7-day hassle free replacement on certified devices.',
+      receiptFooter: 'Thank you for shopping with Rephonix! 7-day hassle free replacement on certified devices.',
     },
     create: {
       id: 'default',
-      shopName: 'The Cell Point',
+      shopName: 'Rephonix',
       address: 'Shop #14, Ground Floor, Galaxy Tech Hub, MG Road, Mumbai - 400001',
       phone: '+91 98765 43210',
-      email: 'contact@thecellpoint.com',
+      email: 'contact@rephonix.in',
       gstin: '27AAAAA0000A1Z5',
       currencySymbol: '₹',
       taxRateDefault: 0.0,
-      receiptFooter: 'Thank you for shopping with The Cell Point! 7-day hassle free replacement on certified devices.',
+      receiptFooter: 'Thank you for shopping with Rephonix! 7-day hassle free replacement on certified devices.',
       allowNegativeStock: false,
     },
   });
 
-  // 3. Ensure Single Admin User (Brij Bhushan)
+  // 3. Ensure Single Admin User (Dhruv)
   const adminPassword = await bcrypt.hash('admin123', 10);
 
   await prisma.user.upsert({
     where: { username: 'admin' },
     update: { 
       passwordHash: adminPassword,
-      fullName: 'Brij Bhushan',
-      email: 'brijbhushan@thecellpoint.com',
+      fullName: 'Dhruv',
+      email: 'dhruv@rephonix.in',
       role: 'ADMIN',
       isActive: true,
     },
     create: {
       username: 'admin',
-      email: 'brijbhushan@thecellpoint.com',
-      fullName: 'Brij Bhushan',
+      email: 'dhruv@rephonix.in',
+      fullName: 'Dhruv',
       passwordHash: adminPassword,
       role: 'ADMIN',
       isActive: true,

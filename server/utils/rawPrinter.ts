@@ -60,7 +60,7 @@ public class RawPrinterHelper
     {
         IntPtr hPrinter = IntPtr.Zero;
         DOCINFOA di = new DOCINFOA();
-        di.pDocName = "CellPoint Raw TSPL";
+        di.pDocName = "Rephonix Raw TSPL";
         di.pDataType = "RAW";
 
         if (OpenPrinter(szPrinterName.Normalize(), out hPrinter, IntPtr.Zero))

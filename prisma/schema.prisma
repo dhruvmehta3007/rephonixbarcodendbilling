@@ -201,14 +201,14 @@ model SaleItem {
 // Global Shop Profile & POS Configurations
 model ShopSettings {
   id                 String   @id @default("default")
-  shopName           String   @default("CellPoint Barcode")
+  shopName           String   @default("Rephonix Barcode")
   address            String   @default("Shop #12, Galaxy Commercial Center, MG Road")
   phone              String   @default("+91 98765 43210")
-  email              String   @default("contact@cellpointbarcode.com")
+  email              String   @default("contact@rephonix.in")
   gstin              String   @default("27AAAAA0000A1Z5")
   currencySymbol     String   @default("₹")
   taxRateDefault     Float    @default(18.0)
-  receiptFooter      String   @default("Thank you for shopping with CellPoint Barcode! Goods once sold can be exchanged within 7 days.")
+  receiptFooter      String   @default("Thank you for shopping with Rephonix! Goods once sold can be exchanged within 7 days.")
   allowNegativeStock Boolean  @default(false)
   updatedAt          DateTime @updatedAt
 }
