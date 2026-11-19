@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 import confetti from 'canvas-confetti';
+import { printA4Invoice } from '../utils/printA4Invoice';
 
 interface CartItem {
   cartItemId: string;
@@ -386,9 +387,11 @@ export default function PosPage() {
     }
   };
 
-  // Trigger Native Thermal Receipt Print
+  // Trigger Native A4 Bill Print
   const handlePrintReceipt = () => {
-    window.print();
+    if (completedSale) {
+      printA4Invoice({ sale: completedSale, shopSettings });
+    }
   };
 
   return (
@@ -916,10 +919,10 @@ export default function PosPage() {
               <div className="flex gap-2">
                 <button
                   onClick={handlePrintReceipt}
-                  className="px-3 py-1.5 bg-[#0071e3] hover:bg-blue-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm"
+                  className="px-4 py-1.5 bg-[#0071e3] hover:bg-blue-600 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-95 cursor-pointer"
                 >
-                  <Printer size={13} />
-                  <span>Print Receipt</span>
+                  <Printer size={14} />
+                  <span>Print A4 Invoice</span>
                 </button>
                 <button
                   onClick={() => setCompletedSale(null)}

@@ -12,6 +12,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { api } from '../services/api';
+import { printA4Invoice } from '../utils/printA4Invoice';
 
 export default function SalesPage() {
   const [sales, setSales] = useState<any[]>([]);
@@ -285,11 +286,11 @@ export default function SalesPage() {
               <span className="text-xs font-bold font-mono text-slate-800">Invoice #{selectedInvoice.invoiceNumber}</span>
               <div className="flex gap-2">
                 <button
-                  onClick={() => window.print()}
-                  className="px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded-lg text-xs font-bold flex items-center gap-1.5"
+                  onClick={() => printA4Invoice({ sale: selectedInvoice, shopSettings })}
+                  className="px-4 py-1.5 bg-[#0071e3] hover:bg-blue-600 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-95 cursor-pointer"
                 >
-                  <Printer size={13} />
-                  <span>Reprint</span>
+                  <Printer size={14} />
+                  <span>Print A4 Invoice</span>
                 </button>
                 <button onClick={() => setSelectedInvoice(null)} className="p-1 rounded-lg text-[#86868b] hover:text-[#1d1d1f]">
                   <X size={16} />
