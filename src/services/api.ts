@@ -126,6 +126,13 @@ export const api = {
     resetDatabase: () => request('/settings/reset-database', { method: 'POST' }),
   },
 
+  // Partner / Super Admin Master Panel
+  partner: {
+    getStatus: () => request('/partner/status'),
+    verifyPin: (pin: string) => request('/partner/verify', { method: 'POST', body: JSON.stringify({ pin }) }),
+    updateConfig: (data: any) => request('/partner/update', { method: 'PUT', body: JSON.stringify(data) }),
+  },
+
   // Users & RBAC
   users: {
     getAll: () => request('/users'),

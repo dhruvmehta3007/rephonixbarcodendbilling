@@ -46,6 +46,13 @@ export default function ScannerPage({ onNavigate }: ScannerPageProps) {
   const [directPrinting, setDirectPrinting] = useState(false);
   const [isPrintingPortal, setIsPrintingPortal] = useState(false);
   const [printSuccessMsg, setPrintSuccessMsg] = useState<string | null>(null);
+  const [shopSettings, setShopSettings] = useState<any>(null);
+
+  useEffect(() => {
+    api.settings.get().then((res) => {
+      if (res) setShopSettings(res.data || res);
+    }).catch(() => {});
+  }, []);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -176,6 +183,7 @@ export default function ScannerPage({ onNavigate }: ScannerPageProps) {
         labelSize: '50x25',
         widthMM: 50,
         heightMM: 25,
+        shopName: shopSettings?.shopName,
       });
       await sendRawToSerialPrinter(tsplCode, 9600);
       setPrintSuccessMsg(`1 Slip Printed via USB for ${barcode}!`);
@@ -208,6 +216,7 @@ export default function ScannerPage({ onNavigate }: ScannerPageProps) {
       const res = await api.print.directTSPL({
         printerName: '4BARCODE 4B-2054TG',
         labelSize: '50x25',
+        shopName: shopSettings?.shopName,
         items: [{
           name,
           barcode,
@@ -566,13 +575,7 @@ export default function ScannerPage({ onNavigate }: ScannerPageProps) {
                   )}
                 </div>
 
-                <button
-                  onClick={handleBrowserPrintScanned}
-                  className="w-full py-2.5 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 rounded-xl font-semibold text-xs shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
-                >
-                  <Printer size={15} />
-                  <span>Browser Print (Preview / Dialog)</span>
-                </button>
+
               </div>
             </div>
           ) : (
@@ -651,7 +654,9 @@ export default function ScannerPage({ onNavigate }: ScannerPageProps) {
         <div id="printable-root" className="printable-labels-container">
           <div className="batch-barcode-sticker">
             <div className="w-full flex items-center justify-center border-b border-black/20 pb-0.5 leading-none">
-              <span className="text-[10px] font-black text-black uppercase tracking-wider mx-auto">REPHONIX</span>
+              <span className="text-[10px] font-black text-black uppercase tracking-wider mx-auto">
+                {(shopSettings?.shopName || 'REPHONIX').toUpperCase()}
+              </span>
             </div>
             <div className="w-full text-[8px] font-bold text-black truncate uppercase tracking-tight my-0.5 leading-tight text-left pl-1.5 pr-1">
               {lookupResult.type === 'DEVICE_UNIT' ? (lookupResult.data.product?.name || 'DEVICE') : lookupResult.data.name}

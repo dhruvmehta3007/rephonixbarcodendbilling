@@ -16,7 +16,8 @@ import {
   Settings, 
   LogOut,
   Store,
-  Sparkles
+  Sparkles,
+  ShieldAlert
 } from 'lucide-react';
 
 export type NavItem = 
@@ -30,45 +31,52 @@ export type NavItem =
   | 'sales' 
   | 'barcodes' 
   | 'users' 
-  | 'settings';
+  | 'settings'
+  | 'partner';
 
 interface SidebarProps {
   currentTab: NavItem;
   setCurrentTab: (tab: NavItem) => void;
   user: any;
   onLogout: () => void;
+  shopConfig?: any;
 }
 
-export default function Sidebar({ currentTab, setCurrentTab, user, onLogout }: SidebarProps) {
-  const navLinks = [
-    { id: 'dashboard' as NavItem, label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'scanner' as NavItem, label: 'Scan & Lookup', icon: ScanBarcode, highlight: true },
-    { id: 'pos' as NavItem, label: 'POS Billing', icon: ShoppingCart },
-    { id: 'devices' as NavItem, label: 'Device Barcodes', icon: Smartphone },
-    { id: 'products' as NavItem, label: 'Products', icon: Package },
-    { id: 'inventory' as NavItem, label: 'Inventory & Ledger', icon: Boxes },
-    { id: 'categories' as NavItem, label: 'Categories', icon: FolderTree },
-    { id: 'sales' as NavItem, label: 'Sales History', icon: Receipt },
-    { id: 'barcodes' as NavItem, label: 'Barcode Studio', icon: Barcode },
-    { id: 'users' as NavItem, label: 'Users & Roles', icon: ShieldCheck, adminOnly: true },
-    { id: 'settings' as NavItem, label: 'Shop Settings', icon: Settings, adminOnly: true },
+export default function Sidebar({ currentTab, setCurrentTab, user, onLogout, shopConfig }: SidebarProps) {
+  const allNavLinks = [
+    { id: 'dashboard' as NavItem, label: 'Dashboard', icon: LayoutDashboard, enabled: true },
+    { id: 'scanner' as NavItem, label: 'Scan & Lookup', icon: ScanBarcode, highlight: true, enabled: shopConfig?.moduleDevices !== false || shopConfig?.moduleBarcodes !== false },
+    { id: 'barcodes' as NavItem, label: 'Barcode Studio', icon: Barcode, enabled: shopConfig?.moduleBarcodes !== false },
+    { id: 'devices' as NavItem, label: 'Device Barcodes', icon: Smartphone, enabled: shopConfig?.moduleDevices !== false },
+    { id: 'pos' as NavItem, label: 'POS Billing', icon: ShoppingCart, enabled: shopConfig?.modulePos !== false },
+    { id: 'products' as NavItem, label: 'Products', icon: Package, enabled: shopConfig?.moduleProducts !== false },
+    { id: 'inventory' as NavItem, label: 'Inventory & Ledger', icon: Boxes, enabled: shopConfig?.moduleInventory !== false },
+    { id: 'categories' as NavItem, label: 'Categories', icon: FolderTree, enabled: shopConfig?.moduleCategories !== false },
+    { id: 'sales' as NavItem, label: 'Sales History', icon: Receipt, enabled: shopConfig?.moduleSales !== false },
+    { id: 'users' as NavItem, label: 'Users & Roles', icon: ShieldCheck, adminOnly: true, enabled: true },
+    { id: 'settings' as NavItem, label: 'Store Settings', icon: Settings, adminOnly: true, enabled: true },
   ];
 
-  const isAdmin = user?.role === 'ADMIN';
+  const navLinks = allNavLinks.filter((item) => item.enabled);
+
+  const isPartner = user?.role === 'PARTNER';
+  const isAdmin = user?.role === 'ADMIN' || isPartner;
 
   return (
     <aside className="w-64 bg-[#fbfbfd]/90 backdrop-blur-2xl border-r border-black/[0.08] flex flex-col justify-between flex-shrink-0 h-screen select-none no-print">
       {/* Brand Header */}
       <div>
-        <div className="p-5 border-b border-black/[0.06] flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#0071e3] flex items-center justify-center text-white font-black text-xl shadow-sm">
-            <Barcode size={20} className="stroke-[2.5]" />
-          </div>
-          <div>
-            <div className="font-extrabold text-[15px] tracking-tight text-slate-900 flex items-center gap-1.5">
-              Rephonix <span className="text-[#0071e3] font-semibold text-[10px] px-2 py-0.5 rounded-full bg-[#0071e3]/10 uppercase tracking-wider">Barcode</span>
+        <div className="p-5 border-b border-black/[0.06] flex items-center justify-between">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="w-10 h-10 rounded-xl bg-white border border-slate-200/80 p-1 flex items-center justify-center shadow-sm overflow-hidden flex-shrink-0">
+              <img src="/rephonix-logo.png" alt="Logo" className="w-full h-full object-contain" />
             </div>
-            <div className="text-[11px] text-[#86868b] font-normal">Smart Retail POS</div>
+            <div className="overflow-hidden">
+              <div className="font-extrabold text-[15px] tracking-tight text-slate-900 truncate" title={shopConfig?.shopName || 'Rephonix'}>
+                {shopConfig?.shopName || 'Rephonix'}
+              </div>
+              <div className="text-[11px] text-[#86868b] font-normal truncate">Smart POS & Barcode</div>
+            </div>
           </div>
         </div>
 
@@ -126,7 +134,7 @@ export default function Sidebar({ currentTab, setCurrentTab, user, onLogout }: S
               <div className="text-xs font-semibold text-[#1d1d1f] truncate">{user?.fullName || user?.username || 'Dhruv'}</div>
               <div className="text-[10px] text-[#34c759] font-bold uppercase tracking-wider flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#34c759]"></span>
-                {user?.role || 'ADMIN'}
+                {user?.role === 'PARTNER' ? 'PARTNER' : user?.role === 'ADMIN' ? 'SHOP OWNER' : 'CASHIER'}
               </div>
             </div>
           </div>

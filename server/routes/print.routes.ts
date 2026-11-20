@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { printRawTSPL } from '../utils/rawPrinter';
 import { buildCellPointTSPLJob } from '../utils/tsplBuilder';
+import { prisma } from '../db';
 
 const router = Router();
 
@@ -17,10 +18,24 @@ router.post('/direct-tspl', async (req: Request, res: Response) => {
       labelSize = '50x25',
       widthMM = 50,
       heightMM = 25,
+      shopName,
     } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'No items provided to print' });
+    }
+
+    // Resolve shop name from payload or database
+    let resolvedShopName = shopName;
+    if (!resolvedShopName) {
+      try {
+        const settings = await prisma.shopSettings.findUnique({ where: { id: 'default' } });
+        if (settings?.shopName) {
+          resolvedShopName = settings.shopName;
+        }
+      } catch (e) {
+        // Fallback to default
+      }
     }
 
     const tsplJob = buildCellPointTSPLJob(
@@ -36,6 +51,7 @@ router.post('/direct-tspl', async (req: Request, res: Response) => {
         labelSize,
         widthMM: Number(widthMM) || 50,
         heightMM: Number(heightMM) || 25,
+        shopName: resolvedShopName || 'REPHONIX',
       }
     );
 

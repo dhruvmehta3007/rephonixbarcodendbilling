@@ -22,16 +22,36 @@ router.post('/login', async (req, res: Response) => {
     }
 
     const { username, password } = parse.data;
+    console.log(`[AUTH LOGIN ATTEMPT] Received username: "${username}" (length: ${username.length}), password length: ${password.length}`);
 
-    const user = await prisma.user.findUnique({
-      where: { username },
+    // Case-insensitive username lookup
+    let user = await prisma.user.findFirst({
+      where: {
+        username: {
+          equals: username.trim(),
+        },
+      },
     });
 
+    if (!user) {
+      // Also try lowercase fallback
+      user = await prisma.user.findFirst({
+        where: {
+          username: {
+            equals: username.trim().toLowerCase(),
+          },
+        },
+      });
+    }
+
     if (!user || !user.isActive) {
+      console.log(`[AUTH LOGIN FAILED] User not found or inactive for "${username}"`);
       return res.status(401).json({ error: 'Invalid username or password' });
     }
 
-    const isValid = await bcrypt.compare(password, user.passwordHash);
+    const isValid = await bcrypt.compare(password.trim(), user.passwordHash);
+    console.log(`[AUTH LOGIN MATCH] User "${user.username}" bcrypt compare result:`, isValid);
+
     if (!isValid) {
       return res.status(401).json({ error: 'Invalid username or password' });
     }

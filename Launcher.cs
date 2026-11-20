@@ -104,12 +104,8 @@ namespace Rephonix
                     psi.Arguments = "\"" + scriptPath + "\"";
                     psi.WorkingDirectory = baseDir;
                     psi.CreateNoWindow = true;
-                    psi.UseShellExecute = false;
+                    psi.UseShellExecute = true;
                     psi.WindowStyle = ProcessWindowStyle.Hidden;
-                    psi.RedirectStandardError = true;
-                    psi.RedirectStandardOutput = true;
-                    psi.EnvironmentVariables["PORT"] = "5001";
-                    psi.EnvironmentVariables["NODE_ENV"] = "production";
 
                     serverProcess = Process.Start(psi);
                     File.AppendAllText(logFile, "Node server process started with PID: " + serverProcess.Id + "\n");
@@ -121,10 +117,8 @@ namespace Rephonix
                         Thread.Sleep(500);
                         if (serverProcess.HasExited)
                         {
-                            string err = serverProcess.StandardError.ReadToEnd();
-                            string outTxt = serverProcess.StandardOutput.ReadToEnd();
-                            File.AppendAllText(logFile, "Node exited prematurely! Code: " + serverProcess.ExitCode + "\nSTDERR: " + err + "\nSTDOUT: " + outTxt + "\n");
-                            MessageBox.Show("Server process closed unexpectedly (Exit Code " + serverProcess.ExitCode + "):\n\n" + (string.IsNullOrEmpty(err) ? outTxt : err), "REPHONIX Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            File.AppendAllText(logFile, "Node exited prematurely! Code: " + serverProcess.ExitCode + "\n");
+                            MessageBox.Show("Server process closed unexpectedly (Exit Code " + serverProcess.ExitCode + ")", "REPHONIX Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             return;
                         }
 

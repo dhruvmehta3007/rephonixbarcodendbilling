@@ -32,6 +32,7 @@ export default function DevicesPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [shopSettings, setShopSettings] = useState<any>(null);
 
   // Search & Barcode Scanner input
   const [scannerInput, setScannerInput] = useState('');
@@ -81,7 +82,7 @@ export default function DevicesPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [devRes, prodRes, supRes] = await Promise.all([
+      const [devRes, prodRes, supRes, setRes] = await Promise.all([
         api.devices.getAll({
           search,
           status: statusFilter,
@@ -90,11 +91,15 @@ export default function DevicesPage() {
         }),
         api.products.getAll({ limit: '200' }),
         api.suppliers.getAll(),
+        api.settings.get().catch(() => null),
       ]);
 
       setDevices(devRes.data || []);
       setProducts(prodRes.data || []);
       setSuppliers(supRes || []);
+      if (setRes) {
+        setShopSettings(setRes.data || setRes);
+      }
     } catch (err: any) {
       console.error('Failed to load devices:', err);
     } finally {
@@ -200,6 +205,7 @@ export default function DevicesPage() {
         labelSize: '50x25',
         widthMM: 50,
         heightMM: 25,
+        shopName: shopSettings?.shopName,
       });
       await sendRawToSerialPrinter(tsplCode, 9600);
       alert('1 Slip Printed Directly to USB Thermal Printer!');
@@ -219,6 +225,7 @@ export default function DevicesPage() {
       const res = await api.print.directTSPL({
         printerName: '4BARCODE 4B-2054TG',
         labelSize: '50x25',
+        shopName: shopSettings?.shopName,
         items: [{
           name: printDevice.product?.name || 'DEVICE',
           barcode: printDevice.barcode || printDevice.imei1 || 'DEVICE',
@@ -993,9 +1000,11 @@ export default function DevicesPage() {
                 overflow: 'hidden',
               }}
             >
-              {/* Header: Centered REPHONIX */}
+              {/* Header: Centered Shop Name */}
               <div className="w-full text-center pb-0.5 shrink-0">
-                <span className="font-black text-[12px] tracking-wider text-black uppercase font-mono">REPHONIX</span>
+                <span className="font-black text-[12px] tracking-wider text-black uppercase font-mono">
+                  {(shopSettings?.shopName || 'REPHONIX').toUpperCase()}
+                </span>
               </div>
 
               {/* Product / Device Name - Clean reduced left margin */}
@@ -1038,12 +1047,7 @@ export default function DevicesPage() {
                 <Zap size={16} /> {directPrinting ? 'Sending to 4BARCODE...' : 'Direct Hardware Print (4BARCODE • Zero Dialog)'}
               </button>
 
-              <button
-                onClick={handlePrintDeviceBrowser}
-                className="w-full py-2.5 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 font-semibold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
-              >
-                <Printer size={15} /> Browser Print (Preview / Dialog)
-              </button>
+
             </div>
           </div>
         </div>
@@ -1134,7 +1138,9 @@ export default function DevicesPage() {
         <div id="printable-root" className="printable-labels-container">
           <div className="batch-barcode-sticker">
             <div className="w-full flex items-center justify-center border-b border-black/20 pb-0.5 leading-none">
-              <span className="text-[10px] font-black text-black uppercase tracking-wider mx-auto">REPHONIX</span>
+              <span className="text-[10px] font-black text-black uppercase tracking-wider mx-auto">
+                {(shopSettings?.shopName || 'REPHONIX').toUpperCase()}
+              </span>
             </div>
             <div className="w-full text-[8px] font-bold text-black truncate uppercase tracking-tight my-0.5 leading-tight text-left pl-1.5">
               {printDevice.product?.name || 'DEVICE'}

@@ -29,9 +29,16 @@ export default function BarcodePage() {
   const [directPrinting, setDirectPrinting] = useState(false);
   const [isPrintingPortal, setIsPrintingPortal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [shopSettings, setShopSettings] = useState<any>(null);
 
   useEffect(() => {
     loadProducts();
+    api.settings.get().then((res) => {
+      // /api/settings returns settings object directly (not wrapped in .data)
+      if (res) {
+        setShopSettings(res.data || res);
+      }
+    }).catch(() => {});
   }, []);
 
   const loadProducts = async () => {
@@ -123,6 +130,7 @@ export default function BarcodePage() {
         labelSize,
         widthMM: 50,
         heightMM: 25,
+        shopName: shopSettings?.shopName,
       });
       await sendRawToSerialPrinter(tsplCode, 9600);
       alert(`Successfully sent ${items.length} label(s) directly to USB printer!`);
@@ -151,6 +159,7 @@ export default function BarcodePage() {
         items,
         gapMM: 3,
         labelSize,
+        shopName: shopSettings?.shopName,
       });
       alert(res.message || `Successfully sent ${items.length} label(s) directly to 4BARCODE printer!`);
     } catch (err: any) {
@@ -333,15 +342,7 @@ export default function BarcodePage() {
                   </span>
                 </button>
 
-                {/* Secondary Button: Browser Print Dialog */}
-                <button
-                  disabled={printableLabels.length === 0}
-                  onClick={handleBrowserPrint}
-                  className="w-full py-2.5 px-3 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 rounded-xl font-semibold text-xs shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-40 cursor-pointer"
-                >
-                  <Printer size={15} />
-                  <span>Browser Print (Preview / Dialog)</span>
-                </button>
+
               </div>
             </div>
           </div>
@@ -373,9 +374,11 @@ export default function BarcodePage() {
                         overflow: 'hidden',
                       }}
                     >
-                      {/* REPHONIX Brand Header */}
+                      {/* Brand Header */}
                       <div className="w-full flex items-center justify-between border-b border-gray-200 pb-0.5 leading-none">
-                        <span className="text-[10px] font-black text-black uppercase tracking-wider mx-auto">REPHONIX</span>
+                        <span className="text-[10px] font-black text-black uppercase tracking-wider mx-auto">
+                          {(shopSettings?.shopName || 'REPHONIX').toUpperCase()}
+                        </span>
                       </div>
 
                       {/* Device / Product Name (Reduced Left Margin) */}
@@ -437,9 +440,11 @@ export default function BarcodePage() {
         <div id="printable-root" className="printable-labels-container">
           {printableLabels.map((prod, idx) => (
             <div key={idx} className="batch-barcode-sticker">
-              {/* REPHONIX Brand Header */}
+              {/* Brand Header */}
               <div className="w-full flex items-center justify-between border-b border-black/20 pb-0.5 leading-none">
-                <span className="text-[10px] font-black text-black uppercase tracking-wider mx-auto">REPHONIX</span>
+                <span className="text-[10px] font-black text-black uppercase tracking-wider mx-auto">
+                  {(shopSettings?.shopName || 'REPHONIX').toUpperCase()}
+                </span>
               </div>
 
               {/* Device / Product Name (Reduced Left Margin) */}

@@ -17,6 +17,7 @@ import settingsRoutes from './routes/settings.routes';
 import usersRoutes from './routes/users.routes';
 import deviceRoutes from './routes/device.routes';
 import printRoutes from './routes/print.routes';
+import partnerRoutes from './routes/partner.routes';
 
 dotenv.config();
 
@@ -56,6 +57,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/devices', deviceRoutes);
 app.use('/api/print', printRoutes);
+app.use('/api/partner', partnerRoutes);
 
 // Serve frontend static assets in production
 const clientDistPath = path.resolve(__dirname, '../dist');
@@ -76,12 +78,17 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 });
 
 import { syncAllToFirestore } from './syncAll';
+import { ensurePermanentCredentials } from './initPermanentAccounts';
 
 // Start listening if not in test mode
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, '0.0.0.0', () => {
+  app.listen(PORT, '0.0.0.0', async () => {
     console.log(`🚀 Rephonix Shop Management Server running on port ${PORT}`);
     console.log(`📡 API available at http://0.0.0.0:${PORT}/api`);
+    
+    // Ensure permanent partner & shop owner credentials are alive and never lost
+    await ensurePermanentCredentials();
+
     // Non-blocking sync to Firebase Firestore
     syncAllToFirestore().catch(err => console.error('Initial Firebase sync failed:', err.message));
   });

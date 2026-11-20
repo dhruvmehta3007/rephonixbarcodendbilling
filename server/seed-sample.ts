@@ -52,8 +52,8 @@ export async function seedSampleProducts() {
     where: { username: 'admin' },
     update: { 
       passwordHash: adminPassword,
-      fullName: 'Dhruv',
-      email: 'dhruv@rephonix.in',
+      fullName: 'Garvit Madan',
+      email: 'garvitmadan@thecellpoint.com',
       role: 'ADMIN',
       isActive: true,
     },

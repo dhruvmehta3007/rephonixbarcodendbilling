@@ -201,15 +201,29 @@ model SaleItem {
 // Global Shop Profile & POS Configurations
 model ShopSettings {
   id                 String   @id @default("default")
-  shopName           String   @default("Rephonix Barcode")
-  address            String   @default("Shop #12, Galaxy Commercial Center, MG Road")
+  shopName           String   @default("Rephonix")
+  address            String   @default("Moti Nagar, New Delhi")
   phone              String   @default("+91 98765 43210")
-  email              String   @default("contact@rephonix.in")
+  email              String   @default("support@rephonix.in")
   gstin              String   @default("27AAAAA0000A1Z5")
   currencySymbol     String   @default("₹")
-  taxRateDefault     Float    @default(18.0)
-  receiptFooter      String   @default("Thank you for shopping with Rephonix! Goods once sold can be exchanged within 7 days.")
+  taxRateDefault     Float    @default(0.0)
+  receiptFooter      String   @default("Thank you for shopping with Rephonix! 7-day hassle free replacement on certified devices.")
   allowNegativeStock Boolean  @default(false)
+  
+  // Partner License & Module Access Controls (Managed exclusively by Partner / Super Admin)
+  modulePos          Boolean  @default(true)
+  moduleDevices      Boolean  @default(true)
+  moduleProducts     Boolean  @default(true)
+  moduleInventory    Boolean  @default(true)
+  moduleCategories   Boolean  @default(true)
+  moduleSales        Boolean  @default(true)
+  moduleBarcodes     Boolean  @default(true)
+  moduleReports      Boolean  @default(true)
+  moduleCustomers    Boolean  @default(true)
+  moduleSuppliers    Boolean  @default(true)
+  partnerPinHash     String?  // Optional custom PIN for partner portal access
+
   updatedAt          DateTime @updatedAt
 }
 

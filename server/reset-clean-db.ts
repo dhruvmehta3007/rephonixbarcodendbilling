@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 export async function resetToCleanDatabase() {
   console.log('--- PURGING ALL CATALOG & TRANSACTIONAL DATA FOR CLEAN RESET ---');
 
-  // 1. Wipe all dependent and catalog records
+  // 1. Wipe all dependent and catalog records (preserve users & accounts)
   await prisma.deviceUnit.deleteMany({});
   await prisma.saleItem.deleteMany({});
   await prisma.sale.deleteMany({});
@@ -16,30 +16,21 @@ export async function resetToCleanDatabase() {
   await prisma.product.deleteMany({});
   await prisma.customer.deleteMany({});
   await prisma.supplier.deleteMany({});
-  await prisma.user.deleteMany({
-    where: {
-      username: {
-        notIn: ['admin'],
-      },
-    },
-  });
+  // Do NOT delete users! Keep active partner and owner accounts untouched.
 
-  // 2. Ensure Shop Settings
+  // 2. Ensure Default Shop Settings
   await prisma.shopSettings.upsert({
     where: { id: 'default' },
     update: {
       shopName: 'Rephonix',
-      email: 'contact@rephonix.in',
-      taxRateDefault: 0.0,
-      receiptFooter: 'Thank you for shopping with Rephonix! 7-day hassle free replacement on certified devices.',
+      email: 'support@rephonix.in',
     },
     create: {
       id: 'default',
       shopName: 'Rephonix',
-      address: 'Shop #14, Ground Floor, Galaxy Tech Hub, MG Road, Mumbai - 400001',
+      address: 'Moti Nagar, New Delhi',
       phone: '+91 98765 43210',
-      email: 'contact@rephonix.in',
-      gstin: '27AAAAA0000A1Z5',
+      email: 'support@rephonix.in',
       currencySymbol: '₹',
       taxRateDefault: 0.0,
       receiptFooter: 'Thank you for shopping with Rephonix! 7-day hassle free replacement on certified devices.',
@@ -47,29 +38,7 @@ export async function resetToCleanDatabase() {
     },
   });
 
-  // 3. Ensure Single Admin User (Dhruv)
-  const adminPassword = await bcrypt.hash('admin123', 10);
-
-  await prisma.user.upsert({
-    where: { username: 'admin' },
-    update: { 
-      passwordHash: adminPassword,
-      fullName: 'Dhruv',
-      email: 'dhruv@rephonix.in',
-      role: 'ADMIN',
-      isActive: true,
-    },
-    create: {
-      username: 'admin',
-      email: 'dhruv@rephonix.in',
-      fullName: 'Dhruv',
-      passwordHash: adminPassword,
-      role: 'ADMIN',
-      isActive: true,
-    },
-  });
-
-  // 4. Ensure Category
+  // 3. Ensure Category
   await prisma.category.upsert({
     where: { slug: 'smartphones' },
     update: { name: 'Smartphones & Flagships' },

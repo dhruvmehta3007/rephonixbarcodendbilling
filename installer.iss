@@ -2,7 +2,7 @@
 #define MyAppVersion "1.0.0"
 #define MyAppPublisher "Rephonix"
 #define MyAppExeName "Rephonix.exe"
-#define MyAppSourceDir "D:\finalbarcodecellpoint\thecellpointbarcode\release\Rephonix"
+#define MyAppSourceDir "D:\finalbarcodecellpoint\thecellpointbarcode\release\THE CELL POINT"
 
 [Setup]
 AppId={{C38F7F4D-9D25-4D56-8F72-520D841249A2}
@@ -13,6 +13,7 @@ DefaultDirName={autopf}\{#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=D:\finalbarcodecellpoint\thecellpointbarcode\release
 OutputBaseFilename=Rephonix Setup
+SetupIconFile=D:\finalbarcodecellpoint\thecellpointbarcode\rephonix.ico
 Compression=lzma2/fast
 SolidCompression=no
 WizardStyle=modern
@@ -28,8 +29,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "{#MyAppSourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\rephonix.ico"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\rephonix.ico"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent

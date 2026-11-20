@@ -12,6 +12,7 @@ export interface TSPLJobOptions {
   heightMM?: number;
   gapMM?: number;
   labelSize?: string;
+  shopName?: string;
 }
 
 /**
@@ -27,6 +28,7 @@ export function buildCellPointTSPLJob(
   const widthMM = is30x15 ? 30 : (options.widthMM || 50);
   const heightMM = is30x15 ? 15 : (options.heightMM || 25);
   const gap = options.gapMM ?? 3;
+  const brandTitle = (options.shopName || 'REPHONIX').trim().toUpperCase().replace(/"/g, '');
 
   // Global Hardware Header (Declared ONCE per print job)
   const commands: string[] = [
@@ -61,8 +63,10 @@ export function buildCellPointTSPLJob(
       const priceWidth = priceText.length * 8;
       const priceX = Math.max(120, 230 - priceWidth);
 
-      // Centered: REPHONIX in Font 1 (8x12) = 8 chars * 8 = 64 dots -> (240 - 64)/2 = 88
-      commands.push(`TEXT 88,10,"1",0,1,1,"REPHONIX"`);
+      // Centered: Header text
+      const headerWidth = brandTitle.length * 8;
+      const headerX = Math.max(8, Math.floor((240 - headerWidth) / 2));
+      commands.push(`TEXT ${headerX},10,"1",0,1,1,"${brandTitle}"`);
       const nameWidth = cleanName.length * 8;
       const nameX = Math.max(8, Math.floor((240 - nameWidth) / 2));
       commands.push(`TEXT ${nameX},26,"1",0,1,1,"${cleanName}"`);
@@ -79,8 +83,12 @@ export function buildCellPointTSPLJob(
       const cleanName = (item.name || 'PRODUCT').slice(0, 36).toUpperCase().replace(/"/g, '');
       const nameFont = cleanName.length > 22 ? '1' : '2';
 
-      // Header: REPHONIX in Font 3 (16x24 dots, 8 chars = 128 dots, centered at X=136, Y=10)
-      commands.push(`TEXT 136,10,"3",0,1,1,"REPHONIX"`);
+      // Header in Font 3 (16x24 dots per char)
+      const headerFont = brandTitle.length > 14 ? '2' : '3';
+      const charWidth = headerFont === '3' ? 16 : 12;
+      const totalHeaderWidth = brandTitle.length * charWidth;
+      const headerX = Math.max(8, Math.floor((400 - totalHeaderWidth) / 2));
+      commands.push(`TEXT ${headerX},10,"${headerFont}",0,1,1,"${brandTitle}"`);
 
       // Product Name: Configured at X=88, Y=38
       const nameY = nameFont === '2' ? 38 : 40;

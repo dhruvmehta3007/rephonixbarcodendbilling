@@ -104,25 +104,39 @@ export default function SettingsPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold text-[#1d1d1f] mb-1">Store / Legal Business Name *</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-[#1d1d1f]">Registered Store / Business Name</label>
+                  <span className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <Shield size={10} />
+                    Managed by Rephonix
+                  </span>
+                </div>
                 <input
                   type="text"
-                  required
+                  readOnly
+                  disabled
                   value={formData.shopName}
-                  onChange={(e) => setFormData({ ...formData, shopName: e.target.value })}
-                  className="w-full px-3 py-2 bg-[#f5f5f7] border border-black/[0.08] rounded-xl text-xs text-[#1d1d1f] focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-slate-100 border border-black/[0.08] rounded-xl text-xs font-semibold text-slate-700 cursor-not-allowed select-none"
                 />
+                <span className="text-[11px] text-[#86868b] mt-0.5 block">Store legal license name is locked. Contact your Rephonix partner to modify.</span>
               </div>
 
               <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold text-[#1d1d1f] mb-1">Store Address (Appears on Invoices) *</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-[#1d1d1f]">Registered Store Address</label>
+                  <span className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <Shield size={10} />
+                    Managed by Rephonix
+                  </span>
+                </div>
                 <textarea
                   rows={2}
-                  required
+                  readOnly
+                  disabled
                   value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full px-3 py-2 bg-[#f5f5f7] border border-black/[0.08] rounded-xl text-xs text-[#1d1d1f] focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-slate-100 border border-black/[0.08] rounded-xl text-xs text-slate-700 cursor-not-allowed select-none"
                 />
+                <span className="text-[11px] text-[#86868b] mt-0.5 block">Printed on tax receipts and barcode tags. Locked to licensed installation.</span>
               </div>
 
               <div>

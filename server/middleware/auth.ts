@@ -51,15 +51,29 @@ export async function authenticate(
 }
 
 /**
- * Restricts access to ADMIN role only
+ * Restricts access to ADMIN or PARTNER
  */
 export function requireAdmin(
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) {
-  if (!req.user || req.user.role !== 'ADMIN') {
+  if (!req.user || (req.user.role !== 'ADMIN' && req.user.role !== 'PARTNER')) {
     return res.status(403).json({ error: 'Forbidden. Admin privileges required.' });
+  }
+  next();
+}
+
+/**
+ * Restricts access strictly to PARTNER role only
+ */
+export function requirePartner(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) {
+  if (!req.user || req.user.role !== 'PARTNER') {
+    return res.status(403).json({ error: 'Access forbidden. Partner master credentials required.' });
   }
   next();
 }

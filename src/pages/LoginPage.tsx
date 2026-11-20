@@ -7,8 +7,8 @@ interface LoginPageProps {
 }
 
 export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('admin123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,10 +43,10 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
       <div className="w-full max-w-md bg-[#10182b]/95 backdrop-blur-2xl border border-[#213050] rounded-3xl shadow-2xl shadow-black/50 overflow-hidden p-8 z-10">
         {/* Logo & Heading */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-500 mx-auto flex items-center justify-center shadow-xl shadow-blue-600/30 mb-4 ring-4 ring-blue-500/20">
-            <Store size={32} className="text-white" />
+          <div className="w-20 h-20 rounded-2xl bg-white p-2 mx-auto flex items-center justify-center shadow-xl shadow-blue-600/30 mb-4 ring-4 ring-blue-500/20 overflow-hidden">
+            <img src="/rephonix-logo.png" alt="Rephonix Logo" className="w-full h-full object-contain" />
           </div>
-          <h1 className="text-2xl font-black text-white tracking-tight">Rephonix Barcode</h1>
+          <h1 className="text-2xl font-black text-white tracking-tight">Rephonix</h1>
           <p className="text-sm text-slate-400 mt-1 font-medium">Smart Retail POS & Device Barcode Suite</p>
         </div>
 
@@ -97,44 +97,12 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-semibold text-sm shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-2"
+            className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-semibold text-sm shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-4"
           >
-            <span>{loading ? 'Authenticating...' : 'Sign In to Store'}</span>
+            <span>{loading ? 'Authenticating...' : 'Sign In'}</span>
             <ArrowRight size={16} />
           </button>
         </form>
-
-        {/* Fast Demo Accounts */}
-        <div className="mt-8 pt-6 border-t border-[#1e293b]">
-          <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider text-center mb-3">
-            Quick Demo Login Accounts
-          </div>
-          <div className="grid grid-cols-2 gap-2.5">
-            <button
-              type="button"
-              onClick={() => fillCredentials('admin', 'admin123')}
-              className="p-2.5 rounded-xl bg-[#162035] hover:bg-[#1f2d4a] border border-[#2a3b5c] text-left transition-all group"
-            >
-              <div className="flex items-center gap-1.5 text-xs font-bold text-white group-hover:text-blue-400">
-                <Shield size={13} className="text-amber-400" />
-                <span>Admin Login</span>
-              </div>
-              <div className="text-[10px] text-slate-400 mt-0.5">admin / admin123</div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => fillCredentials('cashier', 'cashier123')}
-              className="p-2.5 rounded-xl bg-[#162035] hover:bg-[#1f2d4a] border border-[#2a3b5c] text-left transition-all group"
-            >
-              <div className="flex items-center gap-1.5 text-xs font-bold text-white group-hover:text-emerald-400">
-                <Zap size={13} className="text-emerald-400" />
-                <span>Cashier Login</span>
-              </div>
-              <div className="text-[10px] text-slate-400 mt-0.5">cashier / cashier123</div>
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );
